@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PaymentForm, CreditCard } from 'react-square-web-payments-sdk';
 import { useCart } from '@/context/CartContext';
@@ -15,9 +16,9 @@ export default function CheckoutPage() {
       <main className="min-h-screen bg-white pt-40 flex flex-col items-center justify-center text-center px-6">
         <h1 className="text-3xl font-serif italic text-[#4c2a17] mb-4">Your bag is empty</h1>
         <p className="text-gray-400 text-sm mb-8 uppercase tracking-[0.2em]">Add some items before checking out</p>
-        <a href="/shop/shop-all" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
+        <Link href="/shop/shop-all" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
           Shop Now
-        </a>
+        </Link>
       </main>
     );
   }
@@ -34,9 +35,9 @@ export default function CheckoutPage() {
         <p className="text-gray-500 text-sm mb-8 max-w-sm">
           Thank you for your purchase. You'll receive a confirmation email shortly.
         </p>
-        <a href="/" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
+        <Link href="/" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
           Back to Home
-        </a>
+        </Link>
       </main>
     );
   }

@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import Image from 'next/image';
 import { ShoppingBag, ChevronDown } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
@@ -18,7 +19,7 @@ export default function Navbar() {
       
       {/* LEFT: Logo & Links */}
       <div className="flex items-center space-x-12">
-        <a href="/" className="transition-transform hover:scale-105">
+        <Link href="/" className="transition-transform hover:scale-105">
           <Image 
             src="/handh2logo.png" 
             alt="Heather & Hickory Logo" 
@@ -29,7 +30,7 @@ export default function Navbar() {
              group-hover/nav:invert"
             priority
           />
-        </a>
+        </Link>
         <div className="hidden lg:flex space-x-8 text-[12px] uppercase tracking-[0.3em] font-bold">
           {/* THE HICKORY SHOP WITH DROPDOWN */}
           <div className="relative group/shop py-2">
@@ -41,13 +42,13 @@ export default function Navbar() {
             <div className="absolute left-0 top-full w-64 pt-4 opacity-0 invisible group-hover/shop:opacity-100 group-hover/shop:visible transition-all duration-300 ease-in-out z-50">
               <div className="bg-white shadow-2xl border border-gray-100 py-8 px-10 flex flex-col space-y-5">
                 {shopCategories.map((category) => (
-                  <a 
+                  <Link
                     key={category.slug}
                     href={`/shop/${category.slug}`}
                     className="text-[#4c2a17] text-[10px] tracking-[0.2em] hover:text-[#435e48] transition-colors duration-200"
                   >
                     {category.name}
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -55,26 +56,26 @@ export default function Navbar() {
             {/* Animated Underline */}
             <span className="absolute bottom-1 left-0 w-full h-[1px] bg-[#4c2a17] group-hover/nav:bg-white scale-x-0 transition-transform duration-300 origin-center group-hover/shop:scale-x-100"></span>
           </div>
-          <a 
+          <Link
             href="/story" 
             className="relative py-2 transition-colors duration-300 text-[#4c2a17] group-hover/nav:text-white group/story"
           >
             Our Story
             <span className="absolute bottom-1 left-0 w-full h-[1px] bg-[#4c2a17] group-hover/nav:bg-white scale-x-0 transition-transform duration-300 origin-center group-hover/story:scale-x-100"></span>
-          </a>
+          </Link>
         </div>
       </div>
 
       {/* CENTER: Branding */}
       <div className="flex justify-center">
-        <a href="/">
+        <Link href="/">
           <h1 
             className="text-3xl lg:text-4xl tracking-tight transition-colors duration-300 text-[#4c2a17] group-hover/nav:text-white" 
             style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
           >
             heather & hickory.
           </h1>
-        </a>
+        </Link>
       </div>
 
       {/* RIGHT: Cart Icon */}
