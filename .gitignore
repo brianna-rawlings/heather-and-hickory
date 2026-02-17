@@ -39,3 +39,32 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+
+
+
+
+
+
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+bin/
+lib/
+include/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+
+# Data and large files
+*.csv
+*.xlsx
+*.ipynb_checkpoints/
+
+# OS files
+.DS_Store

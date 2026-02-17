@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer base {
+  :root {
+    /* This ensures we prioritize the local 72 Oldstyle version */
+    --font-bodoni: "Bodoni 72 Oldstyle", "Bodoni 72", "Bodoni Moda", serif;
+  }
+}
