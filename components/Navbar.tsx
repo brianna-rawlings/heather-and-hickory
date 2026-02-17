@@ -20,7 +20,10 @@ export default function Navbar() {
             alt="Heather & Hickory Logo" 
             width={150} 
             height={150} 
-            className="group-hover/nav:invert transition-all duration-500" 
+            className="object-contain transition-all duration-500 
+             group-hover/nav:brightness-0 
+             group-hover/nav:invert"
+  priority
           />
         </a>
 
