@@ -3,7 +3,7 @@ import { useState } from 'react';
 import QuickViewModal from '@/components/QuickViewModal';
 
 interface Product {
-  id: number;
+  id: string | number;
   name: string;
   price: string;
   image: string;
@@ -25,7 +25,10 @@ export default function ProductCard({ product }: { product: Product }) {
           />
           {/* Overlay */}
           <div className="absolute inset-0 flex items-end justify-center p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            <div className="w-full bg-[#4c2a17] text-white py-2 text-sm uppercase tracking-tighter text-center">
+            <div
+              className="w-full bg-[#4c2a17] text-white py-2 text-sm uppercase tracking-tighter text-center"
+              onClick={(e) => { e.stopPropagation(); setModalOpen(true); }}
+            >
               Select Size
             </div>
           </div>

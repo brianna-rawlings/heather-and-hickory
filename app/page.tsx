@@ -1,8 +1,11 @@
+'use client';
 import Link from 'next/link';
-import { MOCK_PRODUCTS } from '../data/products';
 import ProductCarousel from '@/components/ProductCarousel';
+import { useProducts } from '@/hooks/useProducts';
 
 export default function Home() {
+  const { products, loading, error } = useProducts();
+
   return (
     <main className="min-h-screen bg-white">
       {/* HERO SECTION */}
@@ -16,9 +19,7 @@ export default function Home() {
         >
           <source src="/hero-video.mp4" type="video/mp4" />
         </video>
-        
         <div className="absolute inset-0 z-10 bg-black/20"></div>
-        
         <div className="relative z-20 text-center space-x-6">
           <Link 
             href="/shop/shop-all"
@@ -50,9 +51,32 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="group">
-          <ProductCarousel products={MOCK_PRODUCTS} />
-        </div>
+        {loading && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-16">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-[3/4] bg-gray-100" />
+                <div className="mt-4 space-y-2">
+                  <div className="h-3 bg-gray-100 w-1/2 mx-auto" />
+                  <div className="h-4 bg-gray-100 w-3/4 mx-auto" />
+                  <div className="h-3 bg-gray-100 w-1/4 mx-auto" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && (
+          <p className="text-center text-red-400 text-sm uppercase tracking-[0.2em]">
+            Failed to load products. Please try again.
+          </p>
+        )}
+
+        {!loading && !error && products.length > 0 && (
+          <div className="group">
+            <ProductCarousel products={products} />
+          </div>
+        )}
       </section>
     </main>
   );

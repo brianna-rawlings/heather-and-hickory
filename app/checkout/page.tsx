@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PaymentForm, CreditCard } from 'react-square-web-payments-sdk';
 import { useCart } from '@/context/CartContext';
@@ -16,9 +15,9 @@ export default function CheckoutPage() {
       <main className="min-h-screen bg-white pt-40 flex flex-col items-center justify-center text-center px-6">
         <h1 className="text-3xl font-serif italic text-[#4c2a17] mb-4">Your bag is empty</h1>
         <p className="text-gray-400 text-sm mb-8 uppercase tracking-[0.2em]">Add some items before checking out</p>
-        <Link href="/shop/shop-all" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
+        <a href="/shop/shop-all" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
           Shop Now
-        </Link>
+        </a>
       </main>
     );
   }
@@ -35,9 +34,9 @@ export default function CheckoutPage() {
         <p className="text-gray-500 text-sm mb-8 max-w-sm">
           Thank you for your purchase. You'll receive a confirmation email shortly.
         </p>
-        <Link href="/" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
+        <a href="/" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
           Back to Home
-        </Link>
+        </a>
       </main>
     );
   }
@@ -57,7 +56,7 @@ export default function CheckoutPage() {
             <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Order Summary</h2>
             <div className="space-y-4">
               {items.map(item => (
-                <div key={item.id} className="flex gap-4 py-4 border-b border-gray-100">
+                <div key={`${item.id}-${item.variationId}`} className="flex gap-4 py-4 border-b border-gray-100">
                   <div className="w-20 h-24 bg-gray-100 overflow-hidden flex-shrink-0">
                     <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
@@ -117,7 +116,12 @@ export default function CheckoutPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                       sourceId: token.token,
-                      amount: totalPrice,
+                      // Send items with productId, variationId, quantity — server verifies prices
+                      items: items.map(item => ({
+                        productId: item.id,
+                        variationId: item.variationId || null,
+                        quantity: item.quantity,
+                      })),
                     }),
                   });
                   const data = await res.json();

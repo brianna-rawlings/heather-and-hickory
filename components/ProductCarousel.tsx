@@ -3,12 +3,12 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import ProductCard from '@/components/ProductCard';
 
 interface Product {
-  id: number;
-  name: string;
-  price: string;
-  category: string;
-  image: string;
-}
+    id: string | number;
+    name: string;
+    price: string;
+    category: string;
+    image: string;
+  }
 
 export default function ProductCarousel({ products }: { products: Product[] }) {
   const [offset, setOffset] = useState(0);
@@ -63,9 +63,6 @@ export default function ProductCarousel({ products }: { products: Product[] }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={stopSliding}
     >
-      {/* Edge fade gradients */}
-      <div className="pointer-events-none absolute left-0 top-0 h-full w-24 bg-gradient-to-r from-white to-transparent z-10" />
-      <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white to-transparent z-10" />
 
       {/* Arrow hints */}
       <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
