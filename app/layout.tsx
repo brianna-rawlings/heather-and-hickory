@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import { CartProvider } from "@/context/CartContext";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Heather & Hickory",
@@ -24,6 +25,7 @@ export default function RootLayout({
           {children}
           <Footer />
         </CartProvider>
+        <Analytics />
       </body>
     </html>
   );
