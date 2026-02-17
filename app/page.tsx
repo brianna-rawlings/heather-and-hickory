@@ -52,7 +52,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-6 py-24">
         <div className="flex flex-col md:flex-row justify-between items-baseline mb-16 gap-4">
           <div>
-            <h2 className="text-4xl font-serif text-[#4c2a17] italic">the heather spring collection</h2>
+            <h2 className="text-4xl font-serif text-[#4c2a17] italic">The Heather Spring Collection</h2>
             <div className="h-0.5 w-24 bg-[#435e48] mt-4"></div>
           </div>
           <Link 
@@ -70,14 +70,7 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      {/* FOOTER PREVIEW */}
-      <footer className="bg-gray-50 py-20 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h3 className="font-serif text-2xl text-[#4c2a17] mb-4">Heather & Hickory</h3>
-          <p className="text-gray-500 text-sm tracking-widest uppercase">Tradition never graduates.</p>
-        </div>
-      </footer>
+      
     </main>
   );
 }
