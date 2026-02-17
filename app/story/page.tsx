@@ -1,54 +1,98 @@
 // app/story/page.tsx
+import Image from 'next/image';
 
 export default function StoryPage() {
-    return (
-      <main className="min-h-screen bg-white pt-32">
-        <section className="max-w-4xl mx-auto px-6 py-20">
-          <h1 
-            className="text-6xl italic text-[#4c2a17] mb-12 text-center"
-            style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
-          >
-            Our Story
-          </h1>
-          
-          <div className="space-y-12 text-[#4c2a17] leading-relaxed">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div className="bg-gray-100 aspect-square rounded-sm overflow-hidden relative">
-                 <img 
-                   src="/littlekyle.jpeg" 
-                   className="object-cover h-full w-full" 
-                   alt="The Heather Landscapes" 
-                 />
-              </div>
-              <div>
-                <h2 className="text-2xl italic mb-4 font-serif">The Heather</h2>
-                <p className="text-sm tracking-wide">
-                  Born from the rugged landscapes where the game began, the 'Heather' represents the 
-                  resilience and natural beauty of the classic links. Our designs are inspired by 
-                  the textures and tones of the Scottish highlands.
-                </p>
-              </div>
-            </div>
-  
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div className="order-2 md:order-1">
-                <h2 className="text-2xl italic mb-4 font-serif">The Hickory</h2>
-                <p className="text-sm tracking-wide">
-                  Hickory represents the era of craftsmanship. It’s a nod to the tools, the 
-                  restoration of vintage feel, and the tactile nature of a game played with 
-                  precision and soul.
-                </p>
-              </div>
-              <div className="bg-gray-100 aspect-square rounded-sm overflow-hidden order-1 md:order-2">
-                 <img 
-                   src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=800" 
-                   className="object-cover h-full w-full" 
-                   alt="Hickory Craftsmanship" 
-                 />
-              </div>
+  return (
+    /* Changed pt-32 to pt-40 to move the header down a bit */
+    <main className="min-h-screen bg-white pt-52">
+      
+      {/* Editorial Header */}
+      <section className="max-w-4xl mx-auto px-6 text-center mb-24">
+        <h1 
+          className="text-6xl italic text-[#4c2a17] mb-6"
+          style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
+        >
+          Tradition Never Graduates.
+        </h1>
+        <div className="h-1 w-20 bg-[#435e48] mx-auto mb-8"></div>
+        <p className="text-gray-500 uppercase tracking-[0.3em] text-[10px] font-bold">
+          A Letter from the Founder
+        </p>
+      </section>
+
+      {/* Main Narrative Section */}
+      <section className="max-w-6xl mx-auto px-6 mb-32">
+        <div className="grid md:grid-cols-2 gap-16 items-center">
+          {/* Main Image - A photo of you on the course or a family golf photo */}
+          <div className="relative aspect-[4/5] overflow-hidden shadow-2xl bg-gray-100">
+            <Image 
+              src="/littlekyle.jpeg" 
+              alt="Kyle Kasitz - Founder of Heather & Hickory" 
+              fill 
+              className="object-cover"
+            />
+          </div>
+
+          <div className="space-y-8">
+            <h2 
+              className="text-4xl italic text-[#4c2a17]"
+              style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
+            >
+              The Story
+            </h2>
+            
+            <div className="space-y-6 text-[#4c2a17] leading-relaxed text-[15px] tracking-wide font-light">
+              <p>
+                Hey there! I am <span className="font-bold">Kyle Kasitz</span>, the founder of <span 
+                    className="font-bold text-[#4c2a17]" 
+                    style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
+                  >
+                    heather&hickory.
+                  </span>{' '}
+                I grew up in Wichita, Kansas, and golf has been a part of my life for as long as I can remember.
+                My family and I have always been passionate about the game, and it has played a 
+                significant role in shaping who I am today. 
+              </p>
+
+              <p>
+                After high school, I was blessed to have the opportunity to play college golf at 
+                Taylor University, where I am currently playing my senior season today. 
+                This environment further deepened my appreciation for the game's history 
+                and the standard of excellence it requires.
+              </p>
+
+              <p>
+                This is why we created <span 
+                    className="font-bold text-[#4c2a17]" 
+                    style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
+                  >
+                    heather&hickory.
+                  </span>{' '} 
+                We wanted 
+                to honor those traditions and share our love for golf through our clothes. 
+                Every piece we create is a reflection of that heritage, designed to share
+                the heritage and tradition through quality and modern styles. 
+              </p>            </div>
+
+            <div className="pt-6 border-t border-gray-100">
+               <p className="font-serif italic text-xl text-[#4c2a17]">Kyle Kasitz</p>
+               <p className="text-[10px] uppercase tracking-widest text-gray-400 mt-1">Founder</p>
             </div>
           </div>
-        </section>
-      </main>
-    );
-  }
+        </div>
+      </section>
+
+      {/* Philosophy Section */}
+      <section className="bg-[#435e48] py-24 text-white">
+        <div className="max-w-3xl mx-auto px-6 text-center space-y-8">
+          <h2 className="text-4xl font-serif italic">The Heart of the Game</h2>
+          <p className="text-sm tracking-[0.1em] leading-loose opacity-90">
+             "We didn't just want to build a brand, we wanted to build a tribute to the game 
+             that raised us. From the Kansas plains to the collegiate stage, golf is about 
+             the stories we tell and the traditions we keep alive."
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
