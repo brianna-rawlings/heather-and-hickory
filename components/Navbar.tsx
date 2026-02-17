@@ -1,7 +1,11 @@
+'use client';
 import Image from 'next/image';
 import { ShoppingBag, ChevronDown } from 'lucide-react';
+import { useCart } from '@/context/CartContext';
 
 export default function Navbar() {
+  const { totalItems, setIsOpen } = useCart();
+
   const shopCategories = [
     { name: 'Shop All', slug: 'shop-all' },
     { name: 'Polos & T-Shirts', slug: 'polos-t-shirts' },
@@ -23,10 +27,9 @@ export default function Navbar() {
             className="object-contain transition-all duration-500 
              group-hover/nav:brightness-0 
              group-hover/nav:invert"
-  priority
+            priority
           />
         </a>
-
         <div className="hidden lg:flex space-x-8 text-[12px] uppercase tracking-[0.3em] font-bold">
           {/* THE HICKORY SHOP WITH DROPDOWN */}
           <div className="relative group/shop py-2">
@@ -34,14 +37,13 @@ export default function Navbar() {
               the hickory shop
               <ChevronDown size={14} className="transition-transform duration-300 group-hover/shop:rotate-180" />
             </button>
-
             {/* DROPDOWN MENU */}
             <div className="absolute left-0 top-full w-64 pt-4 opacity-0 invisible group-hover/shop:opacity-100 group-hover/shop:visible transition-all duration-300 ease-in-out z-50">
               <div className="bg-white shadow-2xl border border-gray-100 py-8 px-10 flex flex-col space-y-5">
                 {shopCategories.map((category) => (
                   <a 
                     key={category.slug}
-                    href={`/shop/${category.slug}`} 
+                    href={`/shop/${category.slug}`}
                     className="text-[#4c2a17] text-[10px] tracking-[0.2em] hover:text-[#435e48] transition-colors duration-200"
                   >
                     {category.name}
@@ -53,7 +55,6 @@ export default function Navbar() {
             {/* Animated Underline */}
             <span className="absolute bottom-1 left-0 w-full h-[1px] bg-[#4c2a17] group-hover/nav:bg-white scale-x-0 transition-transform duration-300 origin-center group-hover/shop:scale-x-100"></span>
           </div>
-
           <a 
             href="/story" 
             className="relative py-2 transition-colors duration-300 text-[#4c2a17] group-hover/nav:text-white group/story"
@@ -76,13 +77,18 @@ export default function Navbar() {
         </a>
       </div>
 
-      {/* RIGHT: Utility Icons */}
+      {/* RIGHT: Cart Icon */}
       <div className="flex justify-end items-center">
-        <button className="relative text-[#4c2a17] group-hover/nav:text-white transition-colors duration-300">
+        <button
+          onClick={() => setIsOpen(true)}
+          className="relative text-[#4c2a17] group-hover/nav:text-white transition-colors duration-300"
+        >
           <ShoppingBag size={22} strokeWidth={1.2} />
-          <span className="absolute -top-2 -right-2 bg-[#4c2a17] group-hover/nav:bg-white group-hover/nav:text-[#435e48] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-            0
-          </span>
+          {totalItems > 0 && (
+            <span className="absolute -top-2 -right-2 bg-[#4c2a17] group-hover/nav:bg-white group-hover/nav:text-[#435e48] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+              {totalItems}
+            </span>
+          )}
         </button>
       </div>
     </nav>

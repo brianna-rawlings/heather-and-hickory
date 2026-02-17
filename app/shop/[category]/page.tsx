@@ -1,15 +1,9 @@
 import ProductCard from '@/components/ProductCard';
-
-// Using the same mock data for now
-const MOCK_PRODUCTS = [
-  { id: 1, name: "The Hickory Classic Polo", price: "$78.00", category: "Apparel", image: "https://images.unsplash.com/photo-1581098323225-727ca07c482a?q=80&w=800" },
-  { id: 2, name: "Canvas & Leather Sunday Bag", price: "$245.00", category: "Accessories", image: "https://images.unsplash.com/photo-1535131749006-b7f58c99034b?q=80&w=800" },
-];
+import { MOCK_PRODUCTS } from '@/data/products';
 
 export default async function CategoryPage({ params }: { params: { category: string } }) {
   const { category } = await params;
   
-  // Filter products based on the URL category
   const filteredProducts = MOCK_PRODUCTS.filter(
     (p) => p.category.toLowerCase() === category.toLowerCase() || category === 'shop-all'
   );
@@ -23,7 +17,6 @@ export default async function CategoryPage({ params }: { params: { category: str
           </h1>
           <div className="h-0.5 w-24 bg-[#435e48] mx-auto"></div>
         </header>
-
         {filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-16 mb-24">
             {filteredProducts.map((product) => (

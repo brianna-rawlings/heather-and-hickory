@@ -1,5 +1,5 @@
-// src/components/ProductCard.tsx
-import Image from 'next/image';
+'use client';
+import { useCart } from '@/context/CartContext';
 
 interface Product {
   id: number;
@@ -10,6 +10,8 @@ interface Product {
 }
 
 export default function ProductCard({ product }: { product: Product }) {
+  const { addItem } = useCart();
+
   return (
     <div className="group cursor-pointer">
       {/* Image Container */}
@@ -19,14 +21,16 @@ export default function ProductCard({ product }: { product: Product }) {
           alt={product.name}
           className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
         />
-        {/* Subtle Quick Add Overlay */}
+        {/* Quick Add Overlay */}
         <div className="absolute inset-0 flex items-end justify-center p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          <button className="w-full bg-hickory text-white py-2 text-sm uppercase tracking-tighter hover:bg-opacity-90">
+          <button
+            onClick={() => addItem(product)}
+            className="w-full bg-[#4c2a17] text-white py-2 text-sm uppercase tracking-tighter hover:bg-[#435e48] transition-colors duration-300"
+          >
             Quick Add
           </button>
         </div>
       </div>
-
       {/* Product Details */}
       <div className="mt-4 text-center">
         <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-1">

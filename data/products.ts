@@ -12,7 +12,7 @@ export interface Product {
       name: "The Hickory Classic Polo",
       price: "$78.00",
       category: "Apparel",
-      image: "public/mockups-02.png",
+      image: "/mockups-02.png",
     },
     {
       id: 2,
