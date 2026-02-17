@@ -16,14 +16,14 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       {/* HERO SECTION */}
-      <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-        <video 
-          autoPlay 
-          loop 
-          muted 
-          playsInline 
-          className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.7]"
-        >
+      <section className="relative h-[75vh] w-full overflow-hidden flex items-center justify-center">
+  <video 
+    autoPlay 
+    loop 
+    muted 
+    playsInline 
+    className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.7]"
+  >
           <source src="/hero-video.mp4" type="video/mp4" />
         </video>
         
