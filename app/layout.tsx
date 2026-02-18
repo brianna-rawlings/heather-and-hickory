@@ -6,7 +6,7 @@ import CartDrawer from "@/components/CartDrawer";
 import { CartProvider } from "@/context/CartContext";
 
 export const metadata: Metadata = {
-  title: "Heather & Hickory",
+  title: "heather & hickory",
   description: "Golf apparel & accessories",
 };
 

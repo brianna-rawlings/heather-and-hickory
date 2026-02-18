@@ -42,7 +42,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white pt-32">
+    <main className="min-h-screen bg-white pt-50">
       <div className="max-w-5xl mx-auto px-6 pb-24">
         <header className="mb-12 text-center">
           <h1 className="text-5xl font-serif italic text-[#4c2a17] mb-4">Checkout</h1>
