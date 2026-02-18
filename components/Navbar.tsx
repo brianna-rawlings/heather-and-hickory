@@ -21,10 +21,10 @@ export default function Navbar() {
       <div className="flex items-center space-x-6">
         <Link href="/" className="transition-transform hover:scale-105">
           <Image 
-            src="/handh2logo.png" 
+            src="/new.png" 
             alt="Heather & Hickory Logo" 
-            width={150} 
-            height={150} 
+            width={130} 
+            height={130} 
             className="object-contain transition-all duration-500 
              group-hover/nav:brightness-0 
              group-hover/nav:invert"
