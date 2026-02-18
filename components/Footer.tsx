@@ -45,7 +45,6 @@ export default function Footer() {
             <div className="flex flex-col space-y-3">
               <Link href="/story" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Our Heritage</Link>
               <a href="mailto:heatherandhickory@gmail.com" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Contact Us</a>
-              <Link href="/shipping" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Shipping Policy</Link>
               <Link href="/returns" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Returns & Exchanges</Link>
             </div>
           </div>
