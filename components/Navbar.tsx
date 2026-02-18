@@ -18,7 +18,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 z-50 w-full transition-all duration-500 ease-in-out !bg-transparent hover:!bg-[#435e48] px-8 py-6 grid grid-cols-3 items-center group/nav">
       
       {/* LEFT: Logo & Links */}
-      <div className="flex items-center space-x-12">
+      <div className="flex items-center space-x-6">
         <Link href="/" className="transition-transform hover:scale-105">
           <Image 
             src="/handh2logo.png" 
@@ -31,7 +31,7 @@ export default function Navbar() {
             priority
           />
         </Link>
-        <div className="hidden lg:flex space-x-8 text-[11.43px] uppercase tracking-[0.3em] font-bold">
+        <div className="hidden md:flex space-x-6 text-[11px] uppercase tracking-[0.25em] font-bold">
           {/* THE HICKORY SHOP WITH DROPDOWN */}
           <div className="relative group/shop py-2">
             <button className="flex items-center gap-2 uppercase tracking-[0.3em] transition-colors duration-300 text-[#4c2a17] group-hover/nav:text-white">
