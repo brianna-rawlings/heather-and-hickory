@@ -31,7 +31,7 @@ export default function Navbar() {
             priority
           />
         </Link>
-        <div className="hidden lg:flex space-x-8 text-[12px] uppercase tracking-[0.3em] font-bold">
+        <div className="hidden lg:flex space-x-8 text-[11.43px] uppercase tracking-[0.3em] font-bold">
           {/* THE HICKORY SHOP WITH DROPDOWN */}
           <div className="relative group/shop py-2">
             <button className="flex items-center gap-2 uppercase tracking-[0.3em] transition-colors duration-300 text-[#4c2a17] group-hover/nav:text-white">
@@ -60,7 +60,7 @@ export default function Navbar() {
             href="/story" 
             className="relative py-2 transition-colors duration-300 text-[#4c2a17] group-hover/nav:text-white group/story"
           >
-            Our Story
+            Our Heritage
             <span className="absolute bottom-1 left-0 w-full h-[1px] bg-[#4c2a17] group-hover/nav:bg-white scale-x-0 transition-transform duration-300 origin-center group-hover/story:scale-x-100"></span>
           </Link>
         </div>
