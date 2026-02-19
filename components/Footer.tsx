@@ -37,7 +37,7 @@ export default function Footer() {
             <h4 className="text-[10px] uppercase tracking-[0.3em] text-white/50 font-bold mb-4">Info</h4>
             <div className="flex flex-col space-y-2">
               <Link href="/story" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Our Heritage</Link>
-              <a href="mailto:heatherandhickory@gmail.com" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Contact Us</a>
+              <a href="/contact" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Contact Us</a>
               <Link href="/shipping" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Shipping Policy</Link>
               <Link href="/returns" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Returns & Exchanges</Link>
             </div>
