@@ -12,7 +12,6 @@ interface Product {
 export default function ProductCard({ product }: { product: Product }) {
   return (
     <Link href={`/shop/product/${product.id}`} className="group cursor-pointer block">
-      {/* Image Container */}
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
         <img
           src={product.image}
@@ -25,12 +24,11 @@ export default function ProductCard({ product }: { product: Product }) {
           </div>
         </div>
       </div>
-      {/* Product Details */}
       <div className="mt-4 text-center">
-        <p className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-1">
+        <p className="text-[10px] uppercase tracking-[0.15em] text-gray-500 mb-1 truncate">
           {product.category}
         </p>
-        <h3 className="text-lg font-bodoni text-hickory">
+        <h3 className="text-base lg:text-lg font-bodoni text-hickory leading-tight">
           {product.name}
         </h3>
         <p className="mt-1 text-sm text-heather-green font-semibold">
