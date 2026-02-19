@@ -1,36 +1,107 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# heather & hickory.
+
+Golf apparel & accessories e-commerce store built with Next.js and Square.
+
+🌐 [heatherandhickory.com](https://heatherandhickory.com)
+
+---
+
+## Tech Stack
+
+- **Framework:** Next.js 16 (App Router)
+- **Styling:** Tailwind CSS
+- **Payments:** Square Web Payments SDK
+- **Product Catalog:** Square Catalog API
+- **Deployment:** Vercel
+
+## Features
+
+- Product catalog fetched from Square Dashboard
+- Size selection per product
+- Shopping cart with slide-out drawer
+- Secure checkout via Square (server-side price verification)
+- Product detail pages
+- Category pages (Polos & T-Shirts, Hoodies & Zips, Hats & Accessories)
+- Shipping & Returns policy pages
+- Fully responsive — mobile & desktop
+- Deployed automatically via GitHub → Vercel
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/your-username/my-golf-store.git
+cd my-golf-store
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Set up environment variables
+
+Create a `.env.local` file in the root of the project:
+
+```
+NEXT_PUBLIC_SQUARE_APP_ID=your_square_app_id
+NEXT_PUBLIC_SQUARE_LOCATION_ID=your_square_location_id
+SQUARE_ACCESS_TOKEN=your_square_access_token
+SQUARE_API_URL=https://connect.squareup.com
+```
+
+> For sandbox/testing use `https://connect.squareupsandbox.com` as the API URL.
+
+### 4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+├── api/
+│   ├── catalog/        # Fetches products from Square Catalog API
+│   └── square/         # Processes payments via Square (server-side)
+├── checkout/           # Checkout page with Square payment form
+├── returns/            # Returns & exchanges policy
+├── shipping/           # Shipping policy
+├── shop/
+│   ├── [category]/     # Dynamic category pages
+│   └── product/[id]/   # Individual product detail pages
+├── story/              # Our Heritage page
+├── layout.tsx
+└── page.tsx            # Homepage
 
-## Learn More
+components/
+├── CartDrawer.tsx       # Slide-out shopping cart
+├── Footer.tsx
+├── Navbar.tsx
+├── ProductCard.tsx
+└── ProductCarousel.tsx  # Desktop carousel
 
-To learn more about Next.js, take a look at the following resources:
+context/
+└── CartContext.tsx      # Global cart state
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+data/
+└── products.ts          # Fallback mock products (used if Square is unavailable)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+hooks/
+└── useProducts.ts       # Fetches products from /api/catalog
+```
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project auto-deploys to Vercel on every push to `main`. Make sure your environment variables are set in your Vercel project settings under **Settings → Environment Variables**.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notes
+
+- Products and categories are managed entirely in the [Square Dashboard](https://squareup.com/dashboard)
+- Adding a new product in Square will automatically appear on the site (with up to 60 second cache)
+- `.env.local` is gitignored — never commit your Square credentials
