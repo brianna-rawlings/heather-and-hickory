@@ -128,7 +128,7 @@ export default function StoryPage() {
       </section>
 
       {/* Philosophy Section */}
-      <section className="bg-[#435e48] py-24 text-white">
+      <section className="bg-[#5d7c62] py-24 text-white">
         <div className="max-w-3xl mx-auto px-6 text-center space-y-8">
           <h2 className="text-4xl font-serif italic">The Heart of the Game</h2>
           <p className="text-sm tracking-[0.1em] leading-loose opacity-90">
