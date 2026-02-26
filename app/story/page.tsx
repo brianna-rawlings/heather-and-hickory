@@ -71,7 +71,7 @@ export default function StoryPage() {
                 We wanted 
                 to honor those traditions and share our love for golf through our clothes. 
                 Every piece we create is a reflection of that heritage, designed to share
-                the heritage and tradition through quality and modern styles. 
+                the history of golf into modern styles of clothing that can be worn on and off the course.
               </p>            </div>
 
             <div className="pt-6 border-t border-gray-100">
@@ -90,6 +90,7 @@ export default function StoryPage() {
              "We didn't just want to build a brand, we wanted to build a tribute to the game 
              that raised us. Golf is a game built on history and tradition, and the goal is to keep
              those two elements alive."
+          - Kyle Kasitz, Founder of heather&hickory
           </p>
         </div>
       </section>
