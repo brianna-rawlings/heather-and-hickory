@@ -12,7 +12,7 @@ export default function StoryPage() {
           className="text-6xl italic text-[#4c2a17] mb-6"
           style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
         >
-          Tradition Never Fades.
+          Tradition Never Fades
         </h1>
         <div className="h-1 w-20 bg-[#435e48] mx-auto mb-8"></div>
         <p className="text-gray-500 uppercase tracking-[0.3em] text-[10px] font-bold">
@@ -88,8 +88,8 @@ export default function StoryPage() {
           <h2 className="text-4xl font-serif italic">The Heart of the Game</h2>
           <p className="text-sm tracking-[0.1em] leading-loose opacity-90">
              "We didn't just want to build a brand, we wanted to build a tribute to the game 
-             that raised us. From the Kansas plains to the collegiate stage, golf is about 
-             the stories we tell and the traditions we keep alive."
+             that raised us. Golf is a game built on history and tradition, and the goal is to keep
+             those two elements alive."
           </p>
         </div>
       </section>
