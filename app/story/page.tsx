@@ -12,7 +12,7 @@ export default function StoryPage() {
           className="text-6xl italic text-[#4c2a17] mb-6"
           style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
         >
-          Tradition Never Graduates.
+          Tradition Never Fades.
         </h1>
         <div className="h-1 w-20 bg-[#435e48] mx-auto mb-8"></div>
         <p className="text-gray-500 uppercase tracking-[0.3em] text-[10px] font-bold">
