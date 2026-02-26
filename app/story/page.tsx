@@ -1,9 +1,34 @@
 // app/story/page.tsx
+"use client";
+
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
+
+const images = [
+  { src: "/kasitz.JPG", alt: "Kyle, Mom, Dad" },
+  { src: "/kasitz2.JPG", alt: "Kyle, Mom, Dad, Adam" },
+  // Add more images here
+];
 
 export default function StoryPage() {
+  const [current, setCurrent] = useState(0);
+  const [opacity, setOpacity] = useState(1);
+
+  useEffect(() => {
+    if (images.length <= 1) return; // no slideshow needed for single image
+  
+    const interval = setInterval(() => {
+      setOpacity(0);
+      setTimeout(() => {
+        setCurrent(prev => (prev + 1) % images.length);
+        setOpacity(1);
+      }, 500);
+    }, 4000);
+  
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    /* Changed pt-32 to pt-40 to move the header down a bit */
     <main className="min-h-screen bg-white pt-52">
       
       {/* Editorial Header */}
@@ -23,14 +48,34 @@ export default function StoryPage() {
       {/* Main Narrative Section */}
       <section className="max-w-6xl mx-auto px-6 mb-32">
         <div className="grid md:grid-cols-2 gap-16 items-center">
-          {/* Main Image - A photo of you on the course or a family golf photo */}
+          
+          {/* Slideshow */}
           <div className="relative aspect-[4/5] overflow-hidden shadow-2xl bg-gray-100">
             <Image 
-              src="/littlekyle.jpeg" 
-              alt="Kyle Kasitz - Founder of Heather & Hickory" 
+              src={images[current].src}
+              alt={images[current].alt}
               fill 
               className="object-cover"
+              style={{
+                opacity,
+                transition: 'opacity 0.5s ease-in-out',
+              }}
             />
+            {/* Dot indicators */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrent(i)}
+                  className="w-2 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    backgroundColor: 'white',
+                    opacity: i === current ? 1 : 0.5,
+                    transform: i === current ? 'scale(1.25)' : 'scale(1)',
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
           <div className="space-y-8">
@@ -68,11 +113,11 @@ export default function StoryPage() {
                   >
                     heather&hickory.
                   </span>{' '} 
-                We wanted 
-                to honor those traditions and share our love for golf through our clothes. 
+                We wanted to honor those traditions and share our love for golf through our clothes. 
                 Every piece we create is a reflection of that heritage, designed to share
                 the history of golf into modern styles of clothing that can be worn on and off the course.
-              </p>            </div>
+              </p>
+            </div>
 
             <div className="pt-6 border-t border-gray-100">
                <p className="font-serif italic text-xl text-[#4c2a17]">Kyle Kasitz</p>
