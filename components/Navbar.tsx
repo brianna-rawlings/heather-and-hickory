@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingBag, ChevronDown, Menu, X } from 'lucide-react';
+import { ChevronDown, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useState } from 'react';
 
@@ -71,8 +71,14 @@ export default function Navbar() {
 
         {/* RIGHT: Cart + Hamburger */}
         <div className="flex justify-end items-center gap-4">
-          <button onClick={() => setIsOpen(true)} className="relative text-[#4c2a17] group-hover/nav:text-white transition-colors duration-300">
-            <ShoppingBag size={22} strokeWidth={1.2} />
+          <button onClick={() => setIsOpen(true)} className="relative">
+            <img
+              src="/golf-bag.svg"
+              alt="cart"
+              width={32}
+              height={32}
+              className="transition-all duration-300 [filter:invert(17%)_sepia(25%)_saturate(800%)_hue-rotate(330deg)_brightness(60%)] group-hover/nav:[filter:invert(1)]"
+            />
             {totalItems > 0 && (
               <span className="absolute -top-2 -right-2 bg-[#4c2a17] group-hover/nav:bg-white group-hover/nav:text-[#435e48] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                 {totalItems}
