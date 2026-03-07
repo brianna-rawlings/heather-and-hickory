@@ -1,23 +1,51 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { PaymentForm, CreditCard } from 'react-square-web-payments-sdk';
 import { useCart } from '@/context/CartContext';
 
+interface CustomerInfo {
+  name: string;
+  email: string;
+  address: {
+    line1: string;
+    line2: string;
+    city: string;
+    state: string;
+    zip: string;
+  };
+}
+
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
-  const router = useRouter();
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [orderId, setOrderId] = useState('');
+  const [customer, setCustomer] = useState<CustomerInfo>({
+    name: '',
+    email: '',
+    address: { line1: '', line2: '', city: '', state: '', zip: '' },
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    if (name in customer.address) {
+      setCustomer(prev => ({ ...prev, address: { ...prev.address, [name]: value } }));
+    } else {
+      setCustomer(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const isFormValid = customer.name && customer.email && customer.address.line1 && customer.address.city && customer.address.state && customer.address.zip;
 
   if (items.length === 0 && status !== 'success') {
     return (
       <main className="min-h-screen bg-white pt-40 flex flex-col items-center justify-center text-center px-6">
         <h1 className="text-3xl font-serif italic text-[#4c2a17] mb-4">Your bag is empty</h1>
         <p className="text-gray-400 text-sm mb-8 uppercase tracking-[0.2em]">Add some items before checking out</p>
-        <a href="/shop/shop-all" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
+        <Link href="/shop/shop-all" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
           Shop Now
-        </a>
+        </Link>
       </main>
     );
   }
@@ -30,19 +58,23 @@ export default function CheckoutPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-3xl font-serif italic text-[#4c2a17] mb-4">Order Confirmed</h1>
-        <p className="text-gray-500 text-sm mb-8 max-w-sm">
-          Thank you for your purchase. You'll receive a confirmation email shortly.
+        <h1 className="text-3xl font-serif italic text-[#4c2a17] mb-2">Order Confirmed</h1>
+        {orderId && <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-6">Order #{orderId}</p>}
+        <p className="text-gray-500 text-sm mb-2 max-w-sm">
+          Thank you for your purchase! A confirmation email has been sent to <strong>{customer.email}</strong>.
         </p>
-        <a href="/" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
+        <p className="text-gray-400 text-xs mb-8 max-w-sm">
+          We'll send a shipping confirmation with tracking once your order is on its way.
+        </p>
+        <Link href="/" className="bg-[#4c2a17] text-white px-10 py-4 text-xs uppercase tracking-[0.3em] hover:bg-[#435e48] transition-colors">
           Back to Home
-        </a>
+        </Link>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white pt-50">
+    <main className="min-h-screen bg-white pt-32">
       <div className="max-w-5xl mx-auto px-6 pb-24">
         <header className="mb-12 text-center">
           <h1 className="text-5xl font-serif italic text-[#4c2a17] mb-4">Checkout</h1>
@@ -50,8 +82,154 @@ export default function CheckoutPage() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          
-          {/* ORDER SUMMARY */}
+
+          {/* LEFT: Customer Info + Payment */}
+          <div className="space-y-10">
+
+            {/* Contact */}
+            <div>
+              <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Contact Information</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">Full Name *</label>
+                  <input type="text" name="name" value={customer.name} onChange={handleChange}
+                    className="w-full border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                    placeholder="Jane Smith" />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">Email Address *</label>
+                  <input type="email" name="email" value={customer.email} onChange={handleChange}
+                    className="w-full border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                    placeholder="jane@email.com" />
+                </div>
+              </div>
+            </div>
+
+            {/* Shipping Address */}
+            <div>
+              <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Shipping Address</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">Address Line 1 *</label>
+                  <input type="text" name="line1" value={customer.address.line1} onChange={handleChange}
+                    className="w-full border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                    placeholder="123 Main St" />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">Address Line 2</label>
+                  <input type="text" name="line2" value={customer.address.line2} onChange={handleChange}
+                    className="w-full border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                    placeholder="Apt, suite, etc. (optional)" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">City *</label>
+                    <input type="text" name="city" value={customer.address.city} onChange={handleChange}
+                      className="w-full border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                      placeholder="New York" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">State *</label>
+                    <input type="text" name="state" value={customer.address.state} onChange={handleChange}
+                      className="w-full border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                      placeholder="NY" maxLength={2} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">ZIP Code *</label>
+                  <input type="text" name="zip" value={customer.address.zip} onChange={handleChange}
+                    className="w-full border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                    placeholder="10001" maxLength={5} />
+                </div>
+              </div>
+            </div>
+
+            {/* Payment */}
+            <div>
+              <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Payment</h2>
+
+              {errorMessage && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 text-sm">
+                  {errorMessage}
+                </div>
+              )}
+
+              {!isFormValid && (
+                <p className="mb-4 text-[10px] uppercase tracking-[0.2em] text-amber-500">
+                  Please fill in all required fields above before entering payment details.
+                </p>
+              )}
+
+              <PaymentForm
+                applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID!}
+                locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!}
+                cardTokenizeResponseReceived={async (token) => {
+                  if (!isFormValid) {
+                    setErrorMessage('Please fill in all required fields.');
+                    return;
+                  }
+                  if (token.status !== 'OK' || !token.token) {
+                    setErrorMessage('Card tokenization failed. Please try again.');
+                    setStatus('error');
+                    return;
+                  }
+                  setStatus('processing');
+                  setErrorMessage('');
+                  try {
+                    const res = await fetch('/api/square', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        sourceId: token.token,
+                        customer,
+                        items: items.map(item => ({
+                          productId: item.id,
+                          variationId: item.variationId || null,
+                          quantity: item.quantity,
+                          name: item.name,
+                        })),
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      setErrorMessage(data.error || 'Payment failed. Please try again.');
+                      setStatus('error');
+                    } else {
+                      clearCart();
+                      setOrderId(data.orderId || '');
+                      setStatus('success');
+                    }
+                  } catch {
+                    setErrorMessage('Something went wrong. Please try again.');
+                    setStatus('error');
+                  }
+                }}
+              >
+                <CreditCard
+                  buttonProps={{
+                    css: {
+                      backgroundColor: isFormValid ? '#4c2a17' : '#d1d5db',
+                      color: 'white',
+                      fontSize: '11px',
+                      letterSpacing: '0.3em',
+                      textTransform: 'uppercase',
+                      padding: '16px',
+                      borderRadius: '0',
+                      '&:hover': { backgroundColor: isFormValid ? '#435e48' : '#d1d5db' },
+                    },
+                  }}
+                >
+                  {status === 'processing' ? 'Processing...' : `Pay $${totalPrice.toFixed(2)}`}
+                </CreditCard>
+              </PaymentForm>
+
+              <p className="mt-4 text-center text-[10px] text-gray-400 uppercase tracking-[0.2em]">
+                Secured by Square · Your card details are encrypted
+              </p>
+            </div>
+          </div>
+
+          {/* RIGHT: Order Summary */}
           <div>
             <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Order Summary</h2>
             <div className="space-y-4">
@@ -87,78 +265,6 @@ export default function CheckoutPage() {
                 <span>${totalPrice.toFixed(2)}</span>
               </div>
             </div>
-          </div>
-
-          {/* PAYMENT FORM */}
-          <div>
-            <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Payment</h2>
-            
-            {errorMessage && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 text-sm">
-                {errorMessage}
-              </div>
-            )}
-
-            <PaymentForm
-              applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID!}
-              locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!}
-              cardTokenizeResponseReceived={async (token) => {
-                if (token.status !== 'OK' || !token.token) {
-                  setErrorMessage('Card tokenization failed. Please try again.');
-                  setStatus('error');
-                  return;
-                }
-                setStatus('processing');
-                setErrorMessage('');
-                try {
-                  const res = await fetch('/api/square', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      sourceId: token.token,
-                      // Send items with productId, variationId, quantity — server verifies prices
-                      items: items.map(item => ({
-                        productId: item.id,
-                        variationId: item.variationId || null,
-                        quantity: item.quantity,
-                      })),
-                    }),
-                  });
-                  const data = await res.json();
-                  if (!res.ok) {
-                    setErrorMessage(data.error || 'Payment failed. Please try again.');
-                    setStatus('error');
-                  } else {
-                    clearCart();
-                    setStatus('success');
-                  }
-                } catch {
-                  setErrorMessage('Something went wrong. Please try again.');
-                  setStatus('error');
-                }
-              }}
-            >
-              <CreditCard
-                buttonProps={{
-                  css: {
-                    backgroundColor: '#4c2a17',
-                    color: 'white',
-                    fontSize: '11px',
-                    letterSpacing: '0.3em',
-                    textTransform: 'uppercase',
-                    padding: '16px',
-                    borderRadius: '0',
-                    '&:hover': { backgroundColor: '#435e48' },
-                  },
-                }}
-              >
-                {status === 'processing' ? 'Processing...' : `Pay $${totalPrice.toFixed(2)}`}
-              </CreditCard>
-            </PaymentForm>
-
-            <p className="mt-4 text-center text-[10px] text-gray-400 uppercase tracking-[0.2em]">
-              Secured by Square · Your card details are encrypted
-            </p>
           </div>
         </div>
       </div>

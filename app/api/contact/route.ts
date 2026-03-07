@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,37 +11,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Send email via your email provider
-    // Using a simple mailto approach via Resend, Nodemailer, or similar
-    // For now we'll use a fetch to a simple email service
-    
-    const emailBody = `
-New contact form submission from heatherandhickory.com
-
-Name: ${name}
-Email: ${email}
-Subject: ${subject || 'Not specified'}
-
-Message:
-${message}
-
----
-Reply directly to: ${email}
-    `.trim();
-
-    // If you set up Resend later, replace this block
-    // For now, log it and return success so the form works
-    console.log('Contact form submission:', { name, email, subject, message });
-
-    // TODO: Add email sending here (Resend, SendGrid, etc.)
-    // Example with Resend:
-    // const resend = new Resend(process.env.RESEND_API_KEY);
-    // await resend.emails.send({
-    //   from: 'onboarding@resend.dev',
-    //   to: 'heatherandhickory@gmail.com',
-    //   subject: `Contact Form: ${subject || 'New Message'} from ${name}`,
-    //   text: emailBody,
-    // });
+    await resend.emails.send({
+      from: 'Heather & Hickory <hello@heatherandhickory.com>',
+      to: 'heatherandhickory@gmail.com',
+      replyTo: email,
+      subject: `Contact Form: ${subject || 'New Message'} from ${name}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 24px; max-width: 560px;">
+          <h2 style="color: #4c2a17;">New Contact Form Submission</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+          <p><strong>Subject:</strong> ${subject || 'Not specified'}</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+          <p><strong>Message:</strong></p>
+          <p style="color: #444; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 16px 0;">
+          <p style="color: #999; font-size: 12px;">Reply directly to this email to respond to ${name}.</p>
+        </div>
+      `,
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

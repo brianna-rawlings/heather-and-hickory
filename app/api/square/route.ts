@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: NextRequest) {
   try {
-    const { sourceId, items } = await req.json();
+    const { sourceId, items, customer } = await req.json();
 
     if (!sourceId || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Fetch real prices from Square instead of trusting the client
+    if (!customer?.email || !customer?.name || !customer?.address) {
+      return NextResponse.json({ error: 'Missing customer information' }, { status: 400 });
+    }
+
+    // Fetch real prices from Square
     const catalogRes = await fetch(`${process.env.SQUARE_API_URL}/v2/catalog/list?types=ITEM`, {
       headers: {
         'Square-Version': '2024-01-18',
@@ -23,36 +30,37 @@ export async function POST(req: NextRequest) {
     const catalogData = await catalogRes.json();
     const catalogObjects = catalogData.objects || [];
 
-    // Build a map of variation id -> price in cents
+    // Build variation price map
     const priceMap: Record<string, number> = {};
+    const nameMap: Record<string, string> = {};
     catalogObjects.forEach((obj: any) => {
       if (obj.type === 'ITEM') {
         (obj.item_data?.variations || []).forEach((v: any) => {
           const amount = v.item_variation_data?.price_money?.amount;
-          if (amount) priceMap[v.id] = amount;
+          if (amount) {
+            priceMap[v.id] = amount;
+            nameMap[v.id] = `${obj.item_data.name} (${v.item_variation_data.name})`;
+          }
         });
       }
     });
 
-    // Calculate the real total server-side
+    // Calculate server-verified total
     let totalAmount = 0;
-    for (const item of items) {
-      const { productId, variationId, quantity } = item;
+    const orderItems: { name: string; quantity: number; price: string }[] = [];
 
+    for (const item of items) {
+      const { productId, variationId, quantity, name } = item;
       if (!productId || !quantity || quantity < 1) {
         return NextResponse.json({ error: 'Invalid item in order' }, { status: 400 });
       }
 
-      // If we have a variationId, use its price; otherwise find the first variation of the product
       let unitPrice: number | undefined;
-
       if (variationId && priceMap[variationId]) {
         unitPrice = priceMap[variationId];
       } else {
-        // Fall back to first variation price for the product
         const product = catalogObjects.find((obj: any) => obj.id === productId);
-        const firstVariation = product?.item_data?.variations?.[0];
-        unitPrice = firstVariation?.item_variation_data?.price_money?.amount;
+        unitPrice = product?.item_data?.variations?.[0]?.item_variation_data?.price_money?.amount;
       }
 
       if (!unitPrice) {
@@ -60,13 +68,18 @@ export async function POST(req: NextRequest) {
       }
 
       totalAmount += unitPrice * quantity;
+      orderItems.push({
+        name: name || nameMap[variationId] || 'Item',
+        quantity,
+        price: `$${((unitPrice * quantity) / 100).toFixed(2)}`,
+      });
     }
 
     if (totalAmount <= 0) {
       return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });
     }
 
-    // Process payment with server-verified amount
+    // Process payment
     const paymentRes = await fetch(`${process.env.SQUARE_API_URL}/v2/payments`, {
       method: 'POST',
       headers: {
@@ -77,11 +90,18 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         source_id: sourceId,
         idempotency_key: crypto.randomUUID(),
-        amount_money: {
-          amount: totalAmount,
-          currency: 'USD',
-        },
+        amount_money: { amount: totalAmount, currency: 'USD' },
         location_id: process.env.SQUARE_LOCATION_ID,
+        buyer_email_address: customer.email,
+        shipping_address: {
+          address_line_1: customer.address.line1,
+          address_line_2: customer.address.line2 || '',
+          locality: customer.address.city,
+          administrative_district_level_1: customer.address.state,
+          postal_code: customer.address.zip,
+          country: 'US',
+        },
+        note: `Order for ${customer.name}`,
       }),
     });
 
@@ -92,7 +112,79 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: paymentData.errors?.[0]?.detail || 'Payment failed' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, payment: paymentData.payment });
+    const orderId = paymentData.payment?.id?.slice(-8).toUpperCase() || 'HH' + Date.now().toString().slice(-6);
+
+    // Send confirmation email to customer
+    await resend.emails.send({
+      from: 'Heather & Hickory <orders@heatherandhickory.com>',
+      to: customer.email,
+      subject: `Order Confirmed — #${orderId}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="font-family: Georgia, serif; background: #f9f7f4; margin: 0; padding: 40px 20px;">
+          <div style="max-width: 560px; margin: 0 auto; background: white; padding: 48px;">
+            
+            <h1 style="font-size: 28px; color: #4c2a17; font-style: italic; margin: 0 0 8px;">heather & hickory.</h1>
+            <div style="height: 2px; width: 48px; background: #435e48; margin-bottom: 32px;"></div>
+
+            <h2 style="font-size: 16px; color: #4c2a17; text-transform: uppercase; letter-spacing: 0.2em; font-weight: bold; margin: 0 0 8px;">Order Confirmed</h2>
+            <p style="color: #666; font-size: 13px; margin: 0 0 32px;">Thank you, ${customer.name}! Your order has been received and is being processed.</p>
+
+            <div style="background: #f9f7f4; padding: 24px; margin-bottom: 24px;">
+              <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: #999; margin: 0 0 16px;">Order #${orderId}</p>
+              ${orderItems.map(item => `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                  <span style="font-size: 13px; color: #4c2a17;">${item.name} × ${item.quantity}</span>
+                  <span style="font-size: 13px; color: #435e48; font-weight: bold;">${item.price}</span>
+                </div>
+              `).join('')}
+              <div style="border-top: 1px solid #e5e5e5; margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between;">
+                <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">Total</span>
+                <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">$${(totalAmount / 100).toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 32px;">
+              <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: #999; margin: 0 0 8px;">Shipping To</p>
+              <p style="font-size: 13px; color: #4c2a17; margin: 0; line-height: 1.6;">
+                ${customer.name}<br>
+                ${customer.address.line1}${customer.address.line2 ? '<br>' + customer.address.line2 : ''}<br>
+                ${customer.address.city}, ${customer.address.state} ${customer.address.zip}
+              </p>
+            </div>
+
+            <p style="font-size: 12px; color: #999; border-top: 1px solid #e5e5e5; padding-top: 24px; margin: 0;">
+              Questions? Reply to this email or contact us at heatherandhickory@gmail.com.<br>
+              We'll send a shipping confirmation with tracking once your order is on its way.
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+
+    // Notify yourself of the new order
+    await resend.emails.send({
+      from: 'Heather & Hickory <orders@heatherandhickory.com>',
+      to: 'heatherandhickory@gmail.com',
+      subject: `New Order #${orderId} — $${(totalAmount / 100).toFixed(2)}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 24px;">
+          <h2>New Order Received!</h2>
+          <p><strong>Order:</strong> #${orderId}</p>
+          <p><strong>Customer:</strong> ${customer.name}</p>
+          <p><strong>Email:</strong> ${customer.email}</p>
+          <p><strong>Address:</strong> ${customer.address.line1}, ${customer.address.city}, ${customer.address.state} ${customer.address.zip}</p>
+          <h3>Items:</h3>
+          ${orderItems.map(item => `<p>${item.name} × ${item.quantity} — ${item.price}</p>`).join('')}
+          <h3>Total: $${(totalAmount / 100).toFixed(2)}</h3>
+        </div>
+      `,
+    });
+
+    return NextResponse.json({ success: true, payment: paymentData.payment, orderId });
   } catch (err) {
     console.error('Server error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
