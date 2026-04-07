@@ -77,7 +77,7 @@ export default function Navbar() {
               alt="cart"
               width={32}
               height={32}
-              className="transition-all duration-300 [filter:invert(17%)_sepia(25%)_saturate(800%)_hue-rotate(330deg)_brightness(60%)] group-hover/nav:[filter:invert(1)]"
+              className="transition-all duration-300 [filter:invert(22%)_sepia(30%)_saturate(700%)_hue-rotate(330deg)_brightness(55%)_contrast(95%)] group-hover/nav:[filter:brightness(0)_invert(1)]"
             />
             {totalItems > 0 && (
               <span className="absolute -top-2 -right-2 bg-[#4c2a17] group-hover/nav:bg-white group-hover/nav:text-[#435e48] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
