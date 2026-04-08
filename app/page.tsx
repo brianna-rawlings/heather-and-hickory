@@ -9,30 +9,37 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       {/* HERO SECTION */}
-      <section className="relative h-[75vh] w-full overflow-hidden flex items-center justify-center">
+      <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         <video 
           autoPlay 
           loop 
           muted 
           playsInline 
-          className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.7]"
+          className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.8]"
         >
-          <source src="/hero-video.mp4" type="video/mp4" />
+          <source src="/handh.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 z-10 bg-black/20"></div>
-        <div className="relative z-20 text-center space-x-6">
-          <Link 
-            href="/shop/shop-all"
-            className="inline-block border border-white text-white px-10 py-4 uppercase text-xs font-bold hover:bg-white hover:text-[#435e48] transition-all duration-500"
-          >
-            Shop Now
-          </Link>
-          <Link 
-            href="/story"
-            className="inline-block border border-white text-white px-10 py-4 uppercase text-xs font-bold hover:bg-white hover:text-[#435e48] transition-all duration-500"
-          >
-            Our Story
-          </Link>
+        <div className="absolute inset-0 z-10 bg-black/10"></div>
+        
+        {/* Centered content */}
+        <div className="relative z-20 text-center flex flex-col items-center gap-8">
+          {/* Brand name */}
+          
+          {/* Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Link 
+              href="/shop/shop-all"
+              className="inline-block border border-white text-white px-10 py-4 uppercase text-xs font-bold hover:bg-white hover:text-[#435e48] transition-all duration-500"
+            >
+              Shop Now
+            </Link>
+            <Link 
+              href="/story"
+              className="inline-block border border-white text-white px-10 py-4 uppercase text-xs font-bold hover:bg-white hover:text-[#435e48] transition-all duration-500"
+            >
+              Our Story
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -50,7 +57,6 @@ export default function Home() {
             Browse All Products
           </Link>
         </div>
-
         {loading && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-16">
             {[1, 2, 3].map(i => (
@@ -65,13 +71,11 @@ export default function Home() {
             ))}
           </div>
         )}
-
         {error && (
           <p className="text-center text-red-400 text-sm uppercase tracking-[0.2em]">
             Failed to load products. Please try again.
           </p>
         )}
-
         {!loading && !error && products.length > 0 && (
           <div className="group">
             <ProductCarousel products={products} />
