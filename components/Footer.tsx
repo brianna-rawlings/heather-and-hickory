@@ -14,7 +14,7 @@ export default function Footer() {
             </h3>
             <p className="text-white/60 text-xs tracking-[0.2em] uppercase mb-4">Golf apparel & accessories</p>
             <div className="flex items-center gap-4">
-              <a href="https://www.instagram.com/heatherandhickorygolfco/" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors duration-200">
+              <a href="https://www.instagram.com/heatherandhickory/" target="_blank" rel="noopener noreferrer" className="text-white/60 hover:text-white transition-colors duration-200">
                 <Instagram size={18} strokeWidth={1.5} />
               </a>
               
