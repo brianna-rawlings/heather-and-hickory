@@ -15,6 +15,7 @@ interface Product {
   price: string;
   category: string;
   image: string;
+  images?: string[];
   variations?: Variation[];
 }
 
@@ -27,14 +28,17 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState(false);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/catalog')
       .then(res => res.json())
       .then(data => {
         const found = data.products?.find((p: Product) => p.id === id);
-        if (found) setProduct(found);
-        else setError(true);
+        if (found) {
+          setProduct(found);
+          setActiveImage(found.images?.[0] || found.image);
+        } else setError(true);
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
@@ -51,6 +55,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
     setIsOpen(true);
     setTimeout(() => setAdded(false), 2000);
   };
+
+  const allImages = product
+    ? Array.from(new Set([...(product.images || []), product.image])).filter(Boolean)
+    : [];
 
   if (loading) {
     return (
@@ -81,7 +89,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <main className="min-h-screen bg-white pt-50">
+    <main className="min-h-screen bg-white pt-32">
       <div className="max-w-5xl mx-auto px-6 pb-24">
 
         {/* Breadcrumb */}
@@ -95,16 +103,36 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
 
-          {/* Image */}
-          <div className="aspect-[3/4] bg-gray-100 overflow-hidden">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+          {/* LEFT: Image Gallery */}
+          <div className="flex gap-4">
+            {/* Thumbnails — only show if more than 1 image */}
+            {allImages.length > 1 && (
+              <div className="flex flex-col gap-2 w-16 flex-shrink-0">
+                {allImages.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActiveImage(img)}
+                    className={`w-16 h-16 overflow-hidden border-2 transition-all duration-200 ${
+                      activeImage === img ? 'border-[#4c2a17]' : 'border-transparent hover:border-gray-300'
+                    }`}
+                  >
+                    <img src={img} alt={`${product.name} view ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Main Image */}
+            <div className="flex-1 aspect-[3/4] bg-gray-100 overflow-hidden">
+              <img
+                src={activeImage || product.image}
+                alt={product.name}
+                className="w-full h-full object-cover transition-all duration-300"
+              />
+            </div>
           </div>
 
-          {/* Details */}
+          {/* RIGHT: Details */}
           <div className="flex flex-col justify-center">
             <p className="text-[10px] uppercase tracking-[0.25em] text-gray-400 mb-3">{product.category}</p>
             <h1 className="text-4xl font-serif text-[#4c2a17] mb-4">{product.name}</h1>

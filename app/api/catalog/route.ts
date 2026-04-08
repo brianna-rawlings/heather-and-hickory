@@ -43,7 +43,11 @@ export async function GET() {
         const item = obj.item_data;
         const firstVariation = item?.variations?.[0]?.item_variation_data;
         const priceAmount = firstVariation?.price_money?.amount || 0;
-        const imageId = item?.image_ids?.[0];
+
+        // Get ALL image IDs not just the first one
+        const imageIds: string[] = item?.image_ids || [];
+        const images = imageIds.map((imgId: string) => imageMap[imgId]).filter(Boolean);
+        const firstImage = images[0] || '/placeholder.png';
 
         // Square uses item_data.categories[0].id (not category_id)
         const categoryId = item?.categories?.[0]?.id;
@@ -54,7 +58,8 @@ export async function GET() {
           name: item?.name || 'Unnamed Product',
           price: `$${(priceAmount / 100).toFixed(2)}`,
           category,
-          image: imageId ? imageMap[imageId] : '/placeholder.png',
+          image: firstImage,
+          images, // all images for gallery
           variations: (item?.variations || []).map((v: any) => ({
             id: v.id,
             name: v.item_variation_data?.name || '',
