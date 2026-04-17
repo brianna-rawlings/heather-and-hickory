@@ -45,7 +45,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-white/10 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center gap-2">
-          <p className="text-[10px] text-white/40 tracking-widest uppercase">© 2026 Heather & Hickory Golf Co. All rights reserved.</p>
+          <p className="text-[10px] text-white/40 tracking-widest uppercase">© 2026 Heather & Hickory LLC. All rights reserved.</p>
           <p className="text-[10px] text-white/40 tracking-widest uppercase">Designed with care in the USA</p>
         </div>
       </div>
