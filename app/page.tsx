@@ -37,7 +37,7 @@ export default function Home() {
               href="/story"
               className="inline-block border border-white text-white px-10 py-4 uppercase text-xs font-bold hover:bg-white hover:text-[#435e48] transition-all duration-500"
             >
-              Our Story
+              Our Heritage
             </Link>
           </div>
         </div>

@@ -92,7 +92,7 @@ export default function StoryPage() {
                     className="font-bold text-[#4c2a17]" 
                     style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
                   >
-                    heather&hickory.
+                    heather & hickory
                   </span>{' '}
                 I grew up in Wichita, Kansas, and golf has been a part of my life for as long as I can remember.
                 My family and I have always been passionate about the game, and it has played a 
@@ -111,7 +111,7 @@ export default function StoryPage() {
                     className="font-bold text-[#4c2a17]" 
                     style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
                   >
-                    heather&hickory.
+                    heather & hickory
                   </span>{' '} 
                 We wanted to honor those traditions and share our love for golf through our clothes. 
                 Every piece we create is a reflection of that heritage, designed to share
@@ -135,7 +135,7 @@ export default function StoryPage() {
              "We didn't just want to build a brand, we wanted to build a tribute to the game 
              that raised us. Golf is a game built on history and tradition, and the goal is to keep
              those two elements alive."
-          - Kyle Kasitz, Founder of heather&hickory
+          - Kyle Kasitz, Founder of heather & hickory
           </p>
         </div>
       </section>

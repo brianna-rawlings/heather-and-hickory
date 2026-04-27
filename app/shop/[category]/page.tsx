@@ -3,6 +3,13 @@ import { use } from 'react';
 import ProductCard from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
 
+const categoryNames: Record<string, string> = {
+  'shop-all': 'Shop All',
+  'polos-t-shirts': 'Polos & T-Shirts',
+  'hoodies-zips': 'Hoodies & Zips',
+  'hats-accessories': 'Hats & Accessories',
+};
+
 export default function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const { category } = use(params);
   const { products, loading, error } = useProducts();
@@ -17,8 +24,8 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
     <main className="min-h-screen bg-white pt-50">
       <div className="max-w-7xl mx-auto px-6">
         <header className="mb-16 text-center">
-          <h1 className="text-5xl font-serif italic text-[#4c2a17] capitalize mb-4">
-            {category.replace(/-/g, ' ')}
+          <h1 className="text-5xl font-serif italic text-[#4c2a17] mb-4">
+            {categoryNames[category] || category.replace(/-/g, ' ')}
           </h1>
           <div className="h-0.5 w-24 bg-[#435e48] mx-auto"></div>
         </header>

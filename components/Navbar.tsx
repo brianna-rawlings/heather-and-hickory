@@ -64,7 +64,7 @@ export default function Navbar() {
               className="text-xl lg:text-4xl tracking-tight transition-colors duration-300 text-[#4c2a17] group-hover/nav:text-white whitespace-nowrap" 
               style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
             >
-              heather & hickory.
+              heather & hickory
             </h1>
           </Link>
         </div>
@@ -134,7 +134,7 @@ export default function Navbar() {
         </div>
 
         <div className="mt-auto">
-          <p className="text-white/30 text-[10px] uppercase tracking-widest">© 2026 Heather & Hickory Golf Co.</p>
+          <p className="text-white/30 text-[10px] uppercase tracking-widest">© 2026 Heather & Hickory LLC. All rights reserved.</p>
         </div>
       </div>
     </>

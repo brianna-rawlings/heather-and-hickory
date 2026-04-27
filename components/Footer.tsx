@@ -10,7 +10,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 lg:col-span-1">
             <h3 className="text-2xl text-white mb-2" style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}>
-              heather & hickory.
+              heather & hickory
             </h3>
             <p className="text-white/60 text-xs tracking-[0.2em] uppercase mb-4">Golf apparel & accessories</p>
             <div className="flex items-center gap-4">

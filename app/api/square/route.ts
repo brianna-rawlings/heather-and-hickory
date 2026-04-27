@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
         <body style="font-family: Georgia, serif; background: #f9f7f4; margin: 0; padding: 40px 20px;">
           <div style="max-width: 560px; margin: 0 auto; background: white; padding: 48px;">
             
-            <h1 style="font-size: 28px; color: #4c2a17; font-style: italic; margin: 0 0 8px;">heather & hickory.</h1>
+            <h1 style="font-size: 28px; color: #4c2a17; font-style: italic; margin: 0 0 8px;">heather & hickory</h1>
             <div style="height: 2px; width: 48px; background: #435e48; margin-bottom: 32px;"></div>
 
             <h2 style="font-size: 16px; color: #4c2a17; text-transform: uppercase; letter-spacing: 0.2em; font-weight: bold; margin: 0 0 8px;">Order Confirmed</h2>
