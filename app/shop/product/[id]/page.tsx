@@ -157,13 +157,36 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 ))}
               </div>
             )}
-            <div className="flex-1 aspect-[3/4] bg-gray-100 overflow-hidden">
-              <img
-                src={activeImage || product.image}
-                alt={product.name}
-                className="w-full h-full object-cover transition-all duration-300"
-              />
-            </div>
+            {/* Main Image */}
+<div className="flex-1 aspect-[3/4] bg-gray-100 overflow-hidden relative">
+  <img
+    src={activeImage || product.image}
+    alt={product.name}
+    className="w-full h-full object-cover transition-all duration-300"
+  />
+  {allImages.length > 1 && (
+    <>
+      <button
+        onClick={() => {
+          const currentIdx = allImages.indexOf(activeImage || product.image);
+          setActiveImage(allImages[currentIdx === 0 ? allImages.length - 1 : currentIdx - 1]);
+        }}
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white text-2xl font-bold drop-shadow-lg"
+      >
+        ‹
+      </button>
+      <button
+        onClick={() => {
+          const currentIdx = allImages.indexOf(activeImage || product.image);
+          setActiveImage(allImages[currentIdx === allImages.length - 1 ? 0 : currentIdx + 1]);
+        }}
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white text-2xl font-bold drop-shadow-lg"
+      >
+        ›
+      </button>
+    </>
+  )}
+</div>
           </div>
 
           {/* RIGHT: Details */}
