@@ -10,6 +10,8 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
 
+
+
   const shopCategories = [
     { name: 'Shop All', slug: 'shop-all' },
     { name: 'Polos & T-Shirts', slug: 'polos-t-shirts' },

@@ -1,119 +1,72 @@
 'use client';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import ProductCard from '@/components/ProductCard';
 
 interface Product {
-    id: string | number;
-    name: string;
-    price: string;
-    category: string;
-    image: string;
-  }
+  id: string | number;
+  name: string;
+  price: string;
+  category: string;
+  image: string;
+  images?: string[];
+}
 
 export default function ProductCarousel({ products }: { products: Product[] }) {
-  const [offset, setOffset] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const directionRef = useRef<'left' | 'right' | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
 
-  const cardWidth = 100 / 3;
-  const maxOffset = (products.length - 3) * cardWidth;
+  // Duplicate products for seamless infinite loop
+  const doubled = [...products, ...products];
 
-  const slide = useCallback((direction: 'left' | 'right') => {
-    setOffset(prev => {
-      if (direction === 'right') return prev >= maxOffset ? 0 : prev + cardWidth;
-      return prev <= 0 ? maxOffset : prev - cardWidth;
-    });
-  }, [maxOffset, cardWidth]);
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
 
-  const stopSliding = () => {
-    directionRef.current = null;
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
+    let animationId: number;
+    let position = 0;
+    const speed = 1.0; // pixels per frame — adjust to make faster or slower
 
-  const startSliding = (direction: 'left' | 'right') => {
-    if (directionRef.current === direction) return;
-    stopSliding();
-    directionRef.current = direction;
-    slide(direction);
-    intervalRef.current = setInterval(() => slide(direction), 900);
-  };
+    const animate = () => {
+      position += speed;
+      // Reset when we've scrolled through the first set
+      const halfWidth = track.scrollWidth / 2;
+      if (position >= halfWidth) position = 0;
+      track.style.transform = `translateX(-${position}px)`;
+      animationId = requestAnimationFrame(animate);
+    };
 
-  useEffect(() => () => stopSliding(), []);
+    animationId = requestAnimationFrame(animate);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    const { left, width } = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - left;
-    const zone = width * 0.18;
-    if (x < zone) startSliding('left');
-    else if (x > width - zone) startSliding('right');
-    else stopSliding();
-  };
+    // Pause on hover
+    const pause = () => cancelAnimationFrame(animationId);
+    const resume = () => { animationId = requestAnimationFrame(animate); };
 
-  const currentIndex = Math.round(offset / cardWidth);
+    track.addEventListener('mouseenter', pause);
+    track.addEventListener('mouseleave', resume);
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      track.removeEventListener('mouseenter', pause);
+      track.removeEventListener('mouseleave', resume);
+    };
+  }, [products]);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative overflow-hidden select-none"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={stopSliding}
-    >
-
-      {/* Arrow hints */}
-      <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-        <div className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center">
-          <svg className="w-4 h-4 text-[#4c2a17]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </div>
-      </div>
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-        <div className="w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center">
-          <svg className="w-4 h-4 text-[#4c2a17]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Sliding track */}
+    <div className="relative overflow-hidden select-none">
       <div
+        ref={trackRef}
         className="flex gap-10"
-        style={{
-          transform: `translateX(-${offset}%)`,
-          transition: 'transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-          width: `${(products.length / 3) * 100}%`,
-        }}
+        style={{ width: 'max-content' }}
       >
-        {products.map((product) => (
+        {doubled.map((product, i) => (
           <div
-            key={product.id}
-            style={{ width: `${100 / products.length}%` }}
+            key={`${product.id}-${i}`}
+            style={{ width: '320px' }}
             className="flex-shrink-0"
           >
             <ProductCard product={product} />
           </div>
         ))}
       </div>
-
-      {/* Dot indicators */}
-      {products.length > 3 && (
-        <div className="flex justify-center gap-2 mt-12">
-          {Array.from({ length: products.length - 2 }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setOffset(i * cardWidth)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                i === currentIndex ? 'bg-[#4c2a17] w-4' : 'bg-gray-300 w-1.5'
-              }`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
