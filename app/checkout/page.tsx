@@ -57,9 +57,10 @@ export default function CheckoutPage() {
   };
 
   const discount = appliedCode ? DISCOUNT_CODES[appliedCode] : null;
-  const shippingCost = discount?.freeShipping ? 0 : shippingMethod === 'expedited' ? 14 : 6;
-  const discountAmount = discount?.percentOff ? totalPrice * discount.percentOff / 100 : 0;
-  const orderTotal = totalPrice - discountAmount + shippingCost;
+const shippingCost = discount?.freeShipping ? 0 : shippingMethod === 'expedited' ? 14 : 6;
+const discountAmount = discount?.percentOff ? totalPrice * discount.percentOff / 100 : 0;
+const taxAmount = parseFloat(((totalPrice - discountAmount) * 0.07).toFixed(2));
+const orderTotal = totalPrice - discountAmount + shippingCost + taxAmount;
 
   const isFormValid = customer.name && customer.email && customer.address.line1 && customer.address.city && customer.address.state && customer.address.zip;
 
@@ -350,6 +351,10 @@ export default function CheckoutPage() {
                 <span>Shipping</span>
                 <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
               </div>
+              <div className="flex justify-between text-sm text-gray-500">
+  <span>Tax (7%)</span>
+  <span>${taxAmount.toFixed(2)}</span>
+</div>
               <div className="flex justify-between text-base font-semibold text-[#4c2a17] border-t border-gray-100 pt-4 mt-4">
                 <span>Total</span>
                 <span>${orderTotal.toFixed(2)}</span>
