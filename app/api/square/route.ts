@@ -3,9 +3,17 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+const SHIPPING_STANDARD = 600; // $6.00 in cents
+const SHIPPING_EXPEDITED = 1400; // $14.00 in cents
+
+const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number }> = {
+  'HHFREESHIP': { freeShipping: true, percentOff: 0 },
+  'TAYLOR10': { freeShipping: true, percentOff: 10 },
+};
+
 export async function POST(req: NextRequest) {
   try {
-    const { sourceId, items, customer } = await req.json();
+    const { sourceId, items, customer, shippingMethod, discountCode } = await req.json();
 
     if (!sourceId || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -30,7 +38,6 @@ export async function POST(req: NextRequest) {
     const catalogData = await catalogRes.json();
     const catalogObjects = catalogData.objects || [];
 
-    // Build variation price map
     const priceMap: Record<string, number> = {};
     const nameMap: Record<string, string> = {};
     catalogObjects.forEach((obj: any) => {
@@ -45,8 +52,8 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Calculate server-verified total
-    let totalAmount = 0;
+    // Calculate subtotal
+    let subtotal = 0;
     const orderItems: { name: string; quantity: number; price: string }[] = [];
 
     for (const item of items) {
@@ -67,13 +74,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Could not verify price for item ${productId}` }, { status: 400 });
       }
 
-      totalAmount += unitPrice * quantity;
+      subtotal += unitPrice * quantity;
       orderItems.push({
         name: name || nameMap[variationId] || 'Item',
         quantity,
         price: `$${((unitPrice * quantity) / 100).toFixed(2)}`,
       });
     }
+
+    // Apply discount code
+    let discount = DISCOUNT_CODES[discountCode?.toUpperCase()];
+    let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : SHIPPING_STANDARD;
+    let discountAmount = 0;
+
+    if (discount) {
+      if (discount.freeShipping) shippingAmount = 0;
+      if (discount.percentOff > 0) discountAmount = Math.round(subtotal * discount.percentOff / 100);
+    }
+
+    const totalAmount = subtotal - discountAmount + shippingAmount;
 
     if (totalAmount <= 0) {
       return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });
@@ -101,14 +120,13 @@ export async function POST(req: NextRequest) {
           postal_code: customer.address.zip,
           country: 'US',
         },
-        note: `Order for ${customer.name}`,
+        note: `Order for ${customer.name}${discountCode ? ` | Code: ${discountCode}` : ''}`,
       }),
     });
 
     const paymentData = await paymentRes.json();
 
     if (!paymentRes.ok) {
-      console.error('Square payment error:', paymentData);
       return NextResponse.json({ error: paymentData.errors?.[0]?.detail || 'Payment failed' }, { status: 400 });
     }
 
@@ -125,13 +143,10 @@ export async function POST(req: NextRequest) {
         <head><meta charset="utf-8"></head>
         <body style="font-family: Georgia, serif; background: #f9f7f4; margin: 0; padding: 40px 20px;">
           <div style="max-width: 560px; margin: 0 auto; background: white; padding: 48px;">
-            
             <h1 style="font-size: 28px; color: #4c2a17; font-style: italic; margin: 0 0 8px;">heather & hickory</h1>
             <div style="height: 2px; width: 48px; background: #435e48; margin-bottom: 32px;"></div>
-
             <h2 style="font-size: 16px; color: #4c2a17; text-transform: uppercase; letter-spacing: 0.2em; font-weight: bold; margin: 0 0 8px;">Order Confirmed</h2>
             <p style="color: #666; font-size: 13px; margin: 0 0 32px;">Thank you, ${customer.name}! Your order has been received and is being processed.</p>
-
             <div style="background: #f9f7f4; padding: 24px; margin-bottom: 24px;">
               <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: #999; margin: 0 0 16px;">Order #${orderId}</p>
               ${orderItems.map(item => `
@@ -140,12 +155,16 @@ export async function POST(req: NextRequest) {
                   <span style="font-size: 13px; color: #435e48; font-weight: bold;">${item.price}</span>
                 </div>
               `).join('')}
+              ${discountAmount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span style="font-size: 13px; color: #435e48;">Discount (${discountCode})</span><span style="font-size: 13px; color: #435e48;">-$${(discountAmount / 100).toFixed(2)}</span></div>` : ''}
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span style="font-size: 13px; color: #4c2a17;">Shipping</span>
+                <span style="font-size: 13px; color: #435e48;">${shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</span>
+              </div>
               <div style="border-top: 1px solid #e5e5e5; margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between;">
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">Total</span>
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">$${(totalAmount / 100).toFixed(2)}</span>
               </div>
             </div>
-
             <div style="margin-bottom: 32px;">
               <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: #999; margin: 0 0 8px;">Shipping To</p>
               <p style="font-size: 13px; color: #4c2a17; margin: 0; line-height: 1.6;">
@@ -154,7 +173,6 @@ export async function POST(req: NextRequest) {
                 ${customer.address.city}, ${customer.address.state} ${customer.address.zip}
               </p>
             </div>
-
             <p style="font-size: 12px; color: #999; border-top: 1px solid #e5e5e5; padding-top: 24px; margin: 0;">
               Questions? Reply to this email or contact us at heatherandhickory@gmail.com.<br>
               We'll send a shipping confirmation with tracking once your order is on its way.
@@ -165,7 +183,7 @@ export async function POST(req: NextRequest) {
       `,
     });
 
-    // Notify yourself of the new order
+    // Notify store of new order
     await resend.emails.send({
       from: 'Heather & Hickory <orders@heatherandhickory.com>',
       to: 'heatherandhickory@gmail.com',
@@ -177,8 +195,11 @@ export async function POST(req: NextRequest) {
           <p><strong>Customer:</strong> ${customer.name}</p>
           <p><strong>Email:</strong> ${customer.email}</p>
           <p><strong>Address:</strong> ${customer.address.line1}, ${customer.address.city}, ${customer.address.state} ${customer.address.zip}</p>
+          ${discountCode ? `<p><strong>Discount Code:</strong> ${discountCode}</p>` : ''}
           <h3>Items:</h3>
           ${orderItems.map(item => `<p>${item.name} × ${item.quantity} — ${item.price}</p>`).join('')}
+          ${discountAmount > 0 ? `<p><strong>Discount:</strong> -$${(discountAmount / 100).toFixed(2)}</p>` : ''}
+          <p><strong>Shipping:</strong> ${shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</p>
           <h3>Total: $${(totalAmount / 100).toFixed(2)}</h3>
         </div>
       `,

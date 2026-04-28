@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { PaymentForm, CreditCard } from 'react-square-web-payments-sdk';
+import { PaymentForm, CreditCard, ApplePay, GooglePay } from 'react-square-web-payments-sdk';
 import { useCart } from '@/context/CartContext';
 
 interface CustomerInfo {
@@ -16,11 +16,20 @@ interface CustomerInfo {
   };
 }
 
+const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number; label: string }> = {
+  'HHFREESHIP': { freeShipping: true, percentOff: 0, label: 'Free shipping applied' },
+  'TAYLOR10': { freeShipping: true, percentOff: 10, label: '10% off + free shipping applied' },
+};
+
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [orderId, setOrderId] = useState('');
+  const [shippingMethod, setShippingMethod] = useState<'standard' | 'expedited'>('standard');
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedCode, setAppliedCode] = useState('');
+  const [codeError, setCodeError] = useState('');
   const [customer, setCustomer] = useState<CustomerInfo>({
     name: '',
     email: '',
@@ -36,7 +45,60 @@ export default function CheckoutPage() {
     }
   };
 
+  const applyCode = () => {
+    const code = discountCode.toUpperCase().trim();
+    if (DISCOUNT_CODES[code]) {
+      setAppliedCode(code);
+      setCodeError('');
+    } else {
+      setCodeError('Invalid discount code');
+      setAppliedCode('');
+    }
+  };
+
+  const discount = appliedCode ? DISCOUNT_CODES[appliedCode] : null;
+  const shippingCost = discount?.freeShipping ? 0 : shippingMethod === 'expedited' ? 14 : 6;
+  const discountAmount = discount?.percentOff ? totalPrice * discount.percentOff / 100 : 0;
+  const orderTotal = totalPrice - discountAmount + shippingCost;
+
   const isFormValid = customer.name && customer.email && customer.address.line1 && customer.address.city && customer.address.state && customer.address.zip;
+
+  const handlePayment = async (token: any) => {
+    if (!isFormValid) { setErrorMessage('Please fill in all required fields.'); return; }
+    if (token.status !== 'OK' || !token.token) { setErrorMessage('Payment failed. Please try again.'); setStatus('error'); return; }
+    setStatus('processing');
+    setErrorMessage('');
+    try {
+      const res = await fetch('/api/square', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceId: token.token,
+          customer,
+          shippingMethod,
+          discountCode: appliedCode || '',
+          items: items.map(item => ({
+            productId: item.id,
+            variationId: item.variationId || null,
+            quantity: item.quantity,
+            name: item.name,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.error || 'Payment failed. Please try again.');
+        setStatus('error');
+      } else {
+        clearCart();
+        setOrderId(data.orderId || '');
+        setStatus('success');
+      }
+    } catch {
+      setErrorMessage('Something went wrong. Please try again.');
+      setStatus('error');
+    }
+  };
 
   if (items.length === 0 && status !== 'success') {
     return (
@@ -74,7 +136,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white pt-32">
+    <main className="min-h-screen bg-white pt-50">
       <div className="max-w-5xl mx-auto px-6 pb-24">
         <header className="mb-12 text-center">
           <h1 className="text-5xl font-serif italic text-[#4c2a17] mb-4">Checkout</h1>
@@ -132,7 +194,7 @@ export default function CheckoutPage() {
                     <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">State *</label>
                     <input type="text" name="state" value={customer.address.state} onChange={handleChange}
                       className="w-full border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
-                      placeholder="NY" maxLength={2} />
+                      placeholder="IN" maxLength={2} />
                   </div>
                 </div>
                 <div>
@@ -142,6 +204,56 @@ export default function CheckoutPage() {
                     placeholder="10001" maxLength={5} />
                 </div>
               </div>
+            </div>
+
+            {/* Shipping Method */}
+            <div>
+              <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Shipping Method</h2>
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShippingMethod('standard')}
+                  className={`w-full flex justify-between items-center px-4 py-4 border transition-all duration-200 ${shippingMethod === 'standard' ? 'border-[#4c2a17] bg-[#4c2a17]/5' : 'border-gray-200 hover:border-gray-300'}`}
+                >
+                  <div className="text-left">
+                    <p className="text-sm text-[#4c2a17] font-medium">Standard Shipping</p>
+                    <p className="text-xs text-gray-400">5–7 business days</p>
+                  </div>
+                  <span className="text-sm font-semibold text-[#435e48]">{discount?.freeShipping ? 'Free' : '$6.00'}</span>
+                </button>
+                <button
+                  onClick={() => setShippingMethod('expedited')}
+                  className={`w-full flex justify-between items-center px-4 py-4 border transition-all duration-200 ${shippingMethod === 'expedited' ? 'border-[#4c2a17] bg-[#4c2a17]/5' : 'border-gray-200 hover:border-gray-300'}`}
+                >
+                  <div className="text-left">
+                    <p className="text-sm text-[#4c2a17] font-medium">Expedited Shipping</p>
+                    <p className="text-xs text-gray-400">2–3 business days</p>
+                  </div>
+                  <span className="text-sm font-semibold text-[#435e48]">{discount?.freeShipping ? 'Free' : '$14.00'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Discount Code */}
+            <div>
+              <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Discount Code</h2>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={discountCode}
+                  onChange={e => setDiscountCode(e.target.value.toUpperCase())}
+                  className="flex-1 border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                  placeholder="Enter code"
+                />
+                <button onClick={applyCode} className="bg-[#4c2a17] text-white px-6 py-3 text-xs uppercase tracking-[0.2em] hover:bg-[#435e48] transition-colors">
+                  Apply
+                </button>
+              </div>
+              {appliedCode && (
+                <p className="mt-2 text-xs text-[#435e48]">✓ {DISCOUNT_CODES[appliedCode].label}</p>
+              )}
+              {codeError && (
+                <p className="mt-2 text-xs text-red-400">{codeError}</p>
+              )}
             </div>
 
             {/* Payment */}
@@ -163,48 +275,20 @@ export default function CheckoutPage() {
               <PaymentForm
                 applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID!}
                 locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!}
-                cardTokenizeResponseReceived={async (token) => {
-                  if (!isFormValid) {
-                    setErrorMessage('Please fill in all required fields.');
-                    return;
-                  }
-                  if (token.status !== 'OK' || !token.token) {
-                    setErrorMessage('Card tokenization failed. Please try again.');
-                    setStatus('error');
-                    return;
-                  }
-                  setStatus('processing');
-                  setErrorMessage('');
-                  try {
-                    const res = await fetch('/api/square', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        sourceId: token.token,
-                        customer,
-                        items: items.map(item => ({
-                          productId: item.id,
-                          variationId: item.variationId || null,
-                          quantity: item.quantity,
-                          name: item.name,
-                        })),
-                      }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok) {
-                      setErrorMessage(data.error || 'Payment failed. Please try again.');
-                      setStatus('error');
-                    } else {
-                      clearCart();
-                      setOrderId(data.orderId || '');
-                      setStatus('success');
-                    }
-                  } catch {
-                    setErrorMessage('Something went wrong. Please try again.');
-                    setStatus('error');
-                  }
-                }}
+                cardTokenizeResponseReceived={handlePayment}
+                createPaymentRequest={() => ({
+                  countryCode: 'US',
+                  currencyCode: 'USD',
+                  total: { amount: orderTotal.toFixed(2), label: 'Total' },
+                })}
               >
+                <ApplePay />
+                <GooglePay />
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400">or pay with card</span>
+                  <div className="flex-1 h-px bg-gray-200"></div>
+                </div>
                 <CreditCard
                   buttonProps={{
                     css: {
@@ -219,7 +303,7 @@ export default function CheckoutPage() {
                     },
                   }}
                 >
-                  {status === 'processing' ? 'Processing...' : `Pay $${totalPrice.toFixed(2)}`}
+                  {status === 'processing' ? 'Processing...' : `Pay $${orderTotal.toFixed(2)}`}
                 </CreditCard>
               </PaymentForm>
 
@@ -256,13 +340,19 @@ export default function CheckoutPage() {
                 <span>Subtotal</span>
                 <span>${totalPrice.toFixed(2)}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-[#435e48]">
+                  <span>Discount ({appliedCode})</span>
+                  <span>-${discountAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Shipping</span>
-                <span>Calculated at next step</span>
+                <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
               </div>
               <div className="flex justify-between text-base font-semibold text-[#4c2a17] border-t border-gray-100 pt-4 mt-4">
                 <span>Total</span>
-                <span>${totalPrice.toFixed(2)}</span>
+                <span>${orderTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
