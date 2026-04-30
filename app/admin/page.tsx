@@ -170,7 +170,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f9f7f4] pt-20 px-6 pb-24">
+    <main className="min-h-screen bg-[#f9f7f4] pt-40 px-6 pb-24">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-3xl font-serif italic text-[#4c2a17]">heather & hickory</h1>
