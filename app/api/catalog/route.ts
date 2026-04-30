@@ -1,22 +1,8 @@
 import { NextResponse } from 'next/server';
 
-const CATEGORY_ORDER: Record<string, number> = {
-  'hoodies & zips': 1,
-  'polos & t-shirts': 2,
-  'hats & accessories': 3,
-};
-
-const TYPE_ORDER: Record<string, number> = {
-  'pullover': 1,
-  'quarter zip': 1,
-  'polo': 2,
-  'hat': 3,
-  'tee': 4,
-  't-shirt': 4,
-};
-
 export async function GET() {
   try {
+    // Fetch catalog
     const response = await fetch(`${process.env.SQUARE_API_URL}/v2/catalog/list?types=ITEM,CATEGORY,IMAGE`, {
       headers: {
         'Square-Version': '2024-01-18',
@@ -35,7 +21,7 @@ export async function GET() {
     const data = await response.json();
     const objects = data.objects || [];
 
-    // Build category map: id -> name
+    // Build category map
     const categoryMap: Record<string, string> = {};
     objects
       .filter((obj: any) => obj.type === 'CATEGORY')
@@ -43,13 +29,52 @@ export async function GET() {
         categoryMap[obj.id] = obj.category_data?.name || 'Uncategorized';
       });
 
-    // Build image map: id -> url
+    // Build image map
     const imageMap: Record<string, string> = {};
     objects
       .filter((obj: any) => obj.type === 'IMAGE')
       .forEach((obj: any) => {
         imageMap[obj.id] = obj.image_data?.url || '';
       });
+
+    // Collect all variation IDs for inventory lookup
+    const allVariationIds: string[] = [];
+    objects
+      .filter((obj: any) => obj.type === 'ITEM' && !obj.is_deleted)
+      .forEach((obj: any) => {
+        (obj.item_data?.variations || []).forEach((v: any) => {
+          allVariationIds.push(v.id);
+        });
+      });
+
+    // Fetch inventory counts from Square
+    const inventoryMap: Record<string, number> = {};
+    if (allVariationIds.length > 0) {
+      try {
+        const inventoryRes = await fetch(`${process.env.SQUARE_API_URL}/v2/inventory/counts/batch-retrieve`, {
+          method: 'POST',
+          headers: {
+            'Square-Version': '2024-01-18',
+            'Authorization': `Bearer ${process.env.SQUARE_ACCESS_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            catalog_object_ids: allVariationIds,
+            states: ['IN_STOCK'],
+          }),
+          next: { revalidate: 60 },
+        });
+
+        if (inventoryRes.ok) {
+          const inventoryData = await inventoryRes.json();
+          (inventoryData.counts || []).forEach((count: any) => {
+            inventoryMap[count.catalog_object_id] = parseInt(count.quantity || '0', 10);
+          });
+        }
+      } catch (err) {
+        console.error('Inventory fetch error:', err);
+      }
+    }
 
     // Transform items
     const products = objects
@@ -68,6 +93,11 @@ export async function GET() {
         const description = item?.description_plaintext || item?.description || '';
         const name: string = item?.name || 'Unnamed Product';
 
+        // Total stock across all variations
+        const totalStock = (item?.variations || []).reduce((sum: number, v: any) => {
+          return sum + (inventoryMap[v.id] || 0);
+        }, 0);
+
         return {
           id: obj.id,
           name,
@@ -76,20 +106,20 @@ export async function GET() {
           image: firstImage,
           images,
           description,
+          totalStock,
           variations: (item?.variations || []).map((v: any) => ({
             id: v.id,
             name: v.item_variation_data?.name || '',
             price: `$${((v.item_variation_data?.price_money?.amount || priceAmount) / 100).toFixed(2)}`,
+            stock: inventoryMap[v.id] ?? 999, // 999 means not tracked
           })),
         };
       });
 
     // Sort: pullover → polos → hats → t-shirts
     products.sort((a: any, b: any) => {
-      const nameLower = (n: string) => n.toLowerCase();
-
       const getTypeOrder = (name: string) => {
-        const n = nameLower(name);
+        const n = name.toLowerCase();
         if (n.includes('pullover') || n.includes('quarter zip') || n.includes('zip')) return 1;
         if (n.includes('polo')) return 2;
         if (n.includes('hat')) return 3;
@@ -97,7 +127,6 @@ export async function GET() {
         if (n.includes('marker') || n.includes('chip') || n.includes('sticker') || n.includes('tees')) return 5;
         return 6;
       };
-
       return getTypeOrder(a.name) - getTypeOrder(b.name);
     });
 

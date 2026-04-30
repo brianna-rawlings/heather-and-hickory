@@ -8,6 +8,7 @@ interface Variation {
   id: string;
   name: string;
   price: string;
+  stock: number;
 }
 
 interface Product {
@@ -18,6 +19,7 @@ interface Product {
   image: string;
   images?: string[];
   description?: string;
+  totalStock: number;
   variations?: Variation[];
 }
 
@@ -71,6 +73,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
 
   const handleAdd = () => {
     if (!product || !selectedSize) return;
+    const selectedVariation = product.variations?.find(v => v.id === selectedVariationId);
+    const availableStock = selectedVariation?.stock ?? 999;
+    if (quantity > availableStock) return;
+
     for (let i = 0; i < quantity; i++) {
       addItem({
         ...product,
@@ -91,7 +97,10 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   const mainDescription = descriptionParts[0]?.trim() || '';
   const materials = descriptionParts[1]?.trim() || '';
 
-  // Build similar products — same category first, then others, exclude current
+  const selectedVariation = product?.variations?.find(v => v.id === selectedVariationId);
+  const selectedStock = selectedVariation?.stock ?? 999;
+  const isOutOfStock = selectedSize ? selectedStock === 0 : product?.totalStock === 0;
+
   const similarProducts = product ? [
     ...allProducts.filter(p => p.id !== id && p.category === product.category),
     ...allProducts.filter(p => p.id !== id && p.category !== product.category),
@@ -126,7 +135,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <main className="min-h-screen bg-white pt-52">
+    <main className="min-h-screen bg-white pt-40">
       <div className="max-w-5xl mx-auto px-6 pb-24">
 
         {/* Breadcrumb */}
@@ -157,36 +166,35 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 ))}
               </div>
             )}
-            {/* Main Image */}
-<div className="flex-1 aspect-[3/4] bg-gray-100 overflow-hidden relative">
-  <img
-    src={activeImage || product.image}
-    alt={product.name}
-    className="w-full h-full object-cover transition-all duration-300"
-  />
-  {allImages.length > 1 && (
-    <>
-      <button
-        onClick={() => {
-          const currentIdx = allImages.indexOf(activeImage || product.image);
-          setActiveImage(allImages[currentIdx === 0 ? allImages.length - 1 : currentIdx - 1]);
-        }}
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white text-2xl font-bold drop-shadow-lg"
-      >
-        ‹
-      </button>
-      <button
-        onClick={() => {
-          const currentIdx = allImages.indexOf(activeImage || product.image);
-          setActiveImage(allImages[currentIdx === allImages.length - 1 ? 0 : currentIdx + 1]);
-        }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white text-2xl font-bold drop-shadow-lg"
-      >
-        ›
-      </button>
-    </>
-  )}
-</div>
+            <div className="flex-1 aspect-[3/4] bg-gray-100 overflow-hidden relative">
+              <img
+                src={activeImage || product.image}
+                alt={product.name}
+                className="w-full h-full object-cover transition-all duration-300"
+              />
+              {allImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => {
+                      const currentIdx = allImages.indexOf(activeImage || product.image);
+                      setActiveImage(allImages[currentIdx === 0 ? allImages.length - 1 : currentIdx - 1]);
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 text-white text-2xl font-bold drop-shadow-lg"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    onClick={() => {
+                      const currentIdx = allImages.indexOf(activeImage || product.image);
+                      setActiveImage(allImages[currentIdx === allImages.length - 1 ? 0 : currentIdx + 1]);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 text-white text-2xl font-bold drop-shadow-lg"
+                  >
+                    ›
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* RIGHT: Details */}
@@ -199,72 +207,104 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
                 : product.price}
             </p>
 
+            {/* Out of stock banner */}
+            {product.totalStock === 0 && (
+              <div className="mb-6 py-3 px-4 bg-gray-100 text-center">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Out of Stock</p>
+              </div>
+            )}
+
             {/* Main Description */}
             {mainDescription && (
               <p className="text-sm leading-relaxed mb-8" style={{ color: '#435e48' }}>{mainDescription}</p>
             )}
 
             {/* Size Selection */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500 font-bold">Select Size</p>
-                {!selectedSize && (
-                  <p className="text-[10px] text-red-400 uppercase tracking-[0.15em]">Required</p>
+            {product.totalStock > 0 && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500 font-bold">Select Size</p>
+                  {!selectedSize && (
+                    <p className="text-[10px] text-red-400 uppercase tracking-[0.15em]">Required</p>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {(product.variations && product.variations.length > 0
+                    ? product.variations
+                    : ['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => ({ id: s, name: s, price: product.price, stock: 999 }))
+                  ).map(variation => {
+                    const outOfStock = variation.stock === 0;
+                    return (
+                      <button
+                        key={variation.id}
+                        onClick={() => {
+                          if (outOfStock) return;
+                          setSelectedSize(variation.name);
+                          setSelectedVariationId(variation.id);
+                          setQuantity(1);
+                        }}
+                        disabled={outOfStock}
+                        className={`py-3 text-xs uppercase tracking-[0.2em] border transition-all duration-200 relative ${
+                          outOfStock
+                            ? 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
+                            : selectedSize === variation.name
+                            ? 'border-[#4c2a17] bg-[#4c2a17] text-white'
+                            : 'border-gray-200 text-gray-600 hover:border-[#4c2a17] hover:text-[#4c2a17]'
+                        }`}
+                      >
+                        {variation.name}
+                        {outOfStock && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="w-full h-px bg-gray-300 rotate-45 absolute"></span>
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedSize && selectedStock > 0 && selectedStock <= 5 && (
+                  <p className="mt-2 text-xs text-amber-500 uppercase tracking-[0.15em]">Only {selectedStock} left!</p>
                 )}
               </div>
-              <div className="grid grid-cols-4 gap-2">
-                {(product.variations && product.variations.length > 0
-                  ? product.variations
-                  : ['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => ({ id: s, name: s, price: product.price }))
-                ).map(variation => (
-                  <button
-                    key={variation.id}
-                    onClick={() => { setSelectedSize(variation.name); setSelectedVariationId(variation.id); }}
-                    className={`py-3 text-xs uppercase tracking-[0.2em] border transition-all duration-200 ${
-                      selectedSize === variation.name
-                        ? 'border-[#4c2a17] bg-[#4c2a17] text-white'
-                        : 'border-gray-200 text-gray-600 hover:border-[#4c2a17] hover:text-[#4c2a17]'
-                    }`}
-                  >
-                    {variation.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* Quantity */}
-            <div className="mb-8">
-              <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500 font-bold mb-4">Quantity</p>
-              <div className="flex items-center border border-gray-200 w-fit">
-                <button
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  className="px-4 py-3 text-[#4c2a17] hover:bg-gray-50 transition-colors text-lg leading-none"
-                >
-                  −
-                </button>
-                <span className="px-6 py-3 text-sm text-[#4c2a17] border-x border-gray-200">{quantity}</span>
-                <button
-                  onClick={() => setQuantity(q => q + 1)}
-                  className="px-4 py-3 text-[#4c2a17] hover:bg-gray-50 transition-colors text-lg leading-none"
-                >
-                  +
-                </button>
+            {product.totalStock > 0 && selectedSize && (
+              <div className="mb-8">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500 font-bold mb-4">Quantity</p>
+                <div className="flex items-center border border-gray-200 w-fit">
+                  <button
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                    className="px-4 py-3 text-[#4c2a17] hover:bg-gray-50 transition-colors text-lg leading-none"
+                  >
+                    −
+                  </button>
+                  <span className="px-6 py-3 text-sm text-[#4c2a17] border-x border-gray-200">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(q => Math.min(selectedStock, q + 1))}
+                    className="px-4 py-3 text-[#4c2a17] hover:bg-gray-50 transition-colors text-lg leading-none"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Add to Bag */}
             <button
               onClick={handleAdd}
-              disabled={!selectedSize}
+              disabled={!selectedSize || isOutOfStock || product.totalStock === 0}
               className={`w-full py-4 text-xs uppercase tracking-[0.3em] transition-all duration-300 mb-4 ${
-                !selectedSize
+                product.totalStock === 0
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : !selectedSize
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : added
                   ? 'bg-[#435e48] text-white'
                   : 'bg-[#4c2a17] text-white hover:bg-[#435e48]'
               }`}
             >
-              {added ? '✓ Added to Bag' : 'Add to Bag'}
+              {product.totalStock === 0 ? 'Out of Stock' : added ? '✓ Added to Bag' : 'Add to Bag'}
             </button>
 
             {/* Accordion Sections */}
