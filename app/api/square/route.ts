@@ -6,10 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const SHIPPING_STANDARD = 600; // $6.00 in cents
 const SHIPPING_EXPEDITED = 1400; // $14.00 in cents
 
-const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number }> = {
-  'HHFREESHIP': { freeShipping: true, percentOff: 0 },
-  'TAYLOR10': { freeShipping: true, percentOff: 10 },
-};
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -83,14 +80,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Apply discount code
-    let discount = DISCOUNT_CODES[discountCode?.toUpperCase()];
+    const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number }> = {
+      'HHFREESHIP': { freeShipping: true, percentOff: 0 },
+      'TAYLOR10': { freeShipping: true, percentOff: 10 },
+      'HICKORY10': { freeShipping: false, percentOff: 10 },
+    };
+    
+    let discount = DISCOUNT_CODES_BACKEND[discountCode?.toUpperCase()];
     let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : SHIPPING_STANDARD;
-    let discountAmount = 0;
-
+    let discountAmount = discount?.percentOff ? Math.round(subtotal * discount.percentOff / 100) : 0;
+    
     const subtotalAfterDiscount = subtotal - discountAmount;
-if (discount?.freeShipping || subtotalAfterDiscount >= 10000) {
-  shippingAmount = 0;
-}
+    if (discount?.freeShipping || subtotalAfterDiscount >= 10000) {
+      shippingAmount = 0;
+    }
 
 const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
 const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
