@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
+// Simple in-memory rate limiter
+const rateLimit = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const limit = rateLimit.get(ip);
+  
+  if (!limit || now > limit.resetAt) {
+    rateLimit.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 }); // 1 hour window
+    return true;
+  }
+  
+  if (limit.count >= 10) return false; // Max 10 attempts per hour
+  
+  limit.count++;
+  return true;
+}
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const SHIPPING_STANDARD = 600; // $6.00 in cents
@@ -10,6 +28,12 @@ const SHIPPING_EXPEDITED = 1400; // $14.00 in cents
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ error: 'Too many payment attempts. Please try again later.' }, { status: 429 });
+    }
+    
     const { sourceId, items, customer, shippingMethod, discountCode } = await req.json();
 
     if (!sourceId || !items || !Array.isArray(items) || items.length === 0) {
