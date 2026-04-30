@@ -87,12 +87,14 @@ export async function POST(req: NextRequest) {
     let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : SHIPPING_STANDARD;
     let discountAmount = 0;
 
-    if (discount) {
-      if (discount.freeShipping) shippingAmount = 0;
-      if (discount.percentOff > 0) discountAmount = Math.round(subtotal * discount.percentOff / 100);
-    }
+    const subtotalAfterDiscount = subtotal - discountAmount;
+if (discount?.freeShipping || subtotalAfterDiscount >= 10000) {
+  shippingAmount = 0;
+}
 
-    const totalAmount = subtotal - discountAmount + shippingAmount;
+const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
+const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
+const totalAmount = subtotal - discountAmount + shippingAmount + taxAmount;
 
     if (totalAmount <= 0) {
       return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });
@@ -156,10 +158,12 @@ export async function POST(req: NextRequest) {
                 </div>
               `).join('')}
               ${discountAmount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span style="font-size: 13px; color: #435e48;">Discount (${discountCode})</span><span style="font-size: 13px; color: #435e48;">-$${(discountAmount / 100).toFixed(2)}</span></div>` : ''}
-              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                <span style="font-size: 13px; color: #4c2a17;">Shipping</span>
-                <span style="font-size: 13px; color: #435e48;">${shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</span>
-              </div>
+              ${taxAmount > 0 ? `
+  <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+    <span style="font-size: 13px; color: #4c2a17;">Tax (KS 6.5%)</span>
+    <span style="font-size: 13px; color: #435e48;">$${(taxAmount / 100).toFixed(2)}</span>
+  </div>
+` : ''}
               <div style="border-top: 1px solid #e5e5e5; margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between;">
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">Total</span>
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">$${(totalAmount / 100).toFixed(2)}</span>

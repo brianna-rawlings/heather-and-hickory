@@ -19,6 +19,7 @@ interface CustomerInfo {
 const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number; label: string }> = {
   'HHFREESHIP': { freeShipping: true, percentOff: 0, label: 'Free shipping applied' },
   'TAYLOR10': { freeShipping: true, percentOff: 10, label: '10% off + free shipping applied' },
+  'HICKORY10': { freeShipping: false, percentOff: 10, label: '10% off applied' },
 };
 
 export default function CheckoutPage() {
@@ -57,10 +58,12 @@ export default function CheckoutPage() {
   };
 
   const discount = appliedCode ? DISCOUNT_CODES[appliedCode] : null;
-const shippingCost = discount?.freeShipping ? 0 : shippingMethod === 'expedited' ? 14 : 6;
-const discountAmount = discount?.percentOff ? totalPrice * discount.percentOff / 100 : 0;
-const taxAmount = parseFloat(((totalPrice - discountAmount) * 0.07).toFixed(2));
-const orderTotal = totalPrice - discountAmount + shippingCost + taxAmount;
+  const discountAmount = discount?.percentOff ? totalPrice * discount.percentOff / 100 : 0;
+  const qualifiesForFreeShipping = (totalPrice - discountAmount) >= 100;
+  const shippingCost = discount?.freeShipping || qualifiesForFreeShipping ? 0 : shippingMethod === 'expedited' ? 14 : 6;
+  const taxRate = customer.address.state.toUpperCase() === 'KS' ? 0.065 : 0;
+  const taxAmount = parseFloat(((totalPrice - discountAmount) * taxRate).toFixed(2));
+  const orderTotal = totalPrice - discountAmount + shippingCost + taxAmount;
 
   const isFormValid = customer.name && customer.email && customer.address.line1 && customer.address.city && customer.address.state && customer.address.zip;
 
@@ -219,7 +222,7 @@ const orderTotal = totalPrice - discountAmount + shippingCost + taxAmount;
                     <p className="text-sm text-[#4c2a17] font-medium">Standard Shipping</p>
                     <p className="text-xs text-gray-400">5–7 business days</p>
                   </div>
-                  <span className="text-sm font-semibold text-[#435e48]">{discount?.freeShipping ? 'Free' : '$6.00'}</span>
+                  <span className="text-sm font-semibold text-[#435e48]">{discount?.freeShipping || qualifiesForFreeShipping ? 'Free' : '$6.00'}</span>
                 </button>
                 <button
                   onClick={() => setShippingMethod('expedited')}
@@ -229,7 +232,7 @@ const orderTotal = totalPrice - discountAmount + shippingCost + taxAmount;
                     <p className="text-sm text-[#4c2a17] font-medium">Expedited Shipping</p>
                     <p className="text-xs text-gray-400">2–3 business days</p>
                   </div>
-                  <span className="text-sm font-semibold text-[#435e48]">{discount?.freeShipping ? 'Free' : '$14.00'}</span>
+                  <span className="text-sm font-semibold text-[#435e48]">{discount?.freeShipping || qualifiesForFreeShipping ? 'Free' : '$14.00'}</span>
                 </button>
               </div>
             </div>
@@ -348,17 +351,19 @@ const orderTotal = totalPrice - discountAmount + shippingCost + taxAmount;
                 </div>
               )}
               <div className="flex justify-between text-sm text-gray-500">
-                <span>Shipping</span>
-                <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-500">
-  <span>Tax (7%)</span>
-  <span>${taxAmount.toFixed(2)}</span>
+  <span>Shipping {qualifiesForFreeShipping && !discount?.freeShipping ? '(free over $100)' : ''}</span>
+  <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
 </div>
-              <div className="flex justify-between text-base font-semibold text-[#4c2a17] border-t border-gray-100 pt-4 mt-4">
-                <span>Total</span>
-                <span>${orderTotal.toFixed(2)}</span>
-              </div>
+{taxAmount > 0 && (
+  <div className="flex justify-between text-sm text-gray-500">
+    <span>Tax (KS 6.5%)</span>
+    <span>${taxAmount.toFixed(2)}</span>
+  </div>
+)}
+<div className="flex justify-between text-base font-semibold text-[#4c2a17] border-t border-gray-100 pt-4 mt-4">
+  <span>Total</span>
+  <span>${orderTotal.toFixed(2)}</span>
+</div>
             </div>
           </div>
         </div>

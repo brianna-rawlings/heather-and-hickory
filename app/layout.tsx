@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import { CartProvider } from "@/context/CartContext";
+import EmailPopup from '@/components/EmailPopup';
 
 export const metadata: Metadata = {
   title: "heather & hickory",
@@ -20,8 +21,11 @@ export default function RootLayout({
       <body>
         <CartProvider>
           <Navbar />
+          <EmailPopup />
           <CartDrawer />
+          
           {children}
+          
           <Footer />
         </CartProvider>
       </body>
