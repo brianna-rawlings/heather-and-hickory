@@ -301,7 +301,12 @@ export default function CheckoutPage() {
                 createPaymentRequest={() => ({
                   countryCode: 'US',
                   currencyCode: 'USD',
-                  total: { amount: orderTotal.toFixed(2), label: 'Total' },
+                  total: { amount: orderTotal.toFixed(2), label: 'Heather & Hickory' },
+                  lineItems: [
+                    { label: 'Subtotal', amount: (totalPrice - discountAmount).toFixed(2) },
+                    { label: shippingMethod === 'pickup' ? 'Campus Pickup' : shippingMethod === 'expedited' ? 'Expedited Shipping' : 'Standard Shipping', amount: shippingCost.toFixed(2) },
+                    ...(taxAmount > 0 ? [{ label: 'Tax', amount: taxAmount.toFixed(2) }] : []),
+                  ],
                 })}
               >
                 <ApplePay />
