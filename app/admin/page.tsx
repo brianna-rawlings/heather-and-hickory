@@ -31,7 +31,7 @@ export default function AdminPage() {
   const [carrier, setCarrier] = useState('USPS');
   const [shippingStatus, setShippingStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [shippingMessage, setShippingMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'orders' | 'manual' | 'codes'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'completed' | 'manual' | 'codes'>('orders');
 
   // Manual shipping confirmation fields
   const [manualOrderId, setManualOrderId] = useState('');
@@ -176,9 +176,10 @@ export default function AdminPage() {
         {/* Tabs */}
         <div className="flex gap-1 mb-8 border-b border-gray-200">
           {[
-            { id: 'orders', label: 'Orders' },
-            { id: 'manual', label: 'Manual Shipping' },
-            { id: 'codes', label: 'Discount Codes' },
+           { id: 'orders', label: 'Orders' },
+           { id: 'completed', label: 'Completed' },
+           { id: 'manual', label: 'Manual Shipping' },
+           { id: 'codes', label: 'Discount Codes' },
           ].map(tab => (
             <button
               key={tab.id}
@@ -206,7 +207,8 @@ export default function AdminPage() {
                 <p className="text-xs uppercase tracking-[0.2em] text-gray-400">No orders yet</p>
               </div>
             ) : (
-              orders.map(order => (
+              
+              orders.filter(o => o.status !== 'COMPLETED').map(order => (
                 <div key={order.id} className="bg-white p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -317,6 +319,55 @@ export default function AdminPage() {
             )}
           </div>
         )}
+
+        {/* COMPLETED TAB */}
+        {activeTab === 'completed' && (
+          <div className="space-y-4">
+            {orders.filter(o => o.status === 'COMPLETED').length === 0 ? (
+              <div className="bg-white p-8 text-center">
+                <p className="text-xs uppercase tracking-[0.2em] text-gray-400">No completed orders yet</p>
+              </div>
+            ) : (
+              orders.filter(o => o.status === 'COMPLETED').map(order => (
+                <div key={order.id} className="bg-white p-6 opacity-60">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-gray-400 mb-1">{formatDate(order.createdAt)}</p>
+                      <h3 className="text-sm font-bold text-[#4c2a17]">Order #{order.shortId}</h3>
+                      <p className="text-sm text-gray-600">{order.customerName}</p>
+                      <p className="text-xs text-gray-400">{order.customerEmail}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-base font-bold text-[#435e48]">{order.total}</p>
+                      <span className="text-[10px] uppercase tracking-[0.15em] px-2 py-1 bg-green-50 text-green-600">
+                        Completed
+                      </span>
+                    </div>
+                  </div>
+                  <div className="border-t border-gray-100 pt-3">
+                    {order.items.map((item, i) => (
+                      <div key={i} className="flex justify-between text-xs text-gray-500 py-1">
+                        <span>{item.name} × {item.quantity}</span>
+                        <span>{item.price}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {order.address.line1 && (
+                    <div className="border-t border-gray-100 pt-3 mt-3">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-1">Shipped To</p>
+                      <p className="text-xs text-gray-600">
+                        {order.address.line1}{order.address.line2 ? `, ${order.address.line2}` : ''}<br />
+                        {order.address.city}, {order.address.state} {order.address.zip}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* MANUAL SHIPPING TAB */}
 
         {/* MANUAL SHIPPING TAB */}
         {activeTab === 'manual' && (
