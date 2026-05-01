@@ -22,9 +22,8 @@ const SHIPPING_STANDARD = 600;
 const SHIPPING_EXPEDITED = 1400;
 
 const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number }> = {
-  'HHFREESHIP': { freeShipping: true, percentOff: 0 },
-  'TAYLOR10': { freeShipping: true, percentOff: 10 },
   'HICKORY10': { freeShipping: false, percentOff: 10 },
+  'KASITZ20': { freeShipping: false, percentOff: 20 },
 };
 
 export async function POST(req: NextRequest) {
@@ -120,7 +119,7 @@ export async function POST(req: NextRequest) {
 
     // Expedited shipping is NEVER free
     let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : shippingMethod === 'pickup' ? 0 : SHIPPING_STANDARD;
-if (shippingMethod === 'standard' && (discount?.freeShipping || subtotalAfterDiscount >= 10000)) {
+    if (shippingMethod === 'standard' && (discount?.freeShipping || subtotalAfterDiscount >= 5000)) {
   shippingAmount = 0;
 }
 

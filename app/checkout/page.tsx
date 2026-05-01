@@ -17,9 +17,8 @@ interface CustomerInfo {
 }
 
 const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number; label: string }> = {
-  'HHFREESHIP': { freeShipping: true, percentOff: 0, label: 'Free shipping applied' },
-  'TAYLOR10': { freeShipping: true, percentOff: 10, label: '10% off + free shipping applied' },
   'HICKORY10': { freeShipping: false, percentOff: 10, label: '10% off applied' },
+  'KASITZ20': { freeShipping: false, percentOff: 20, label: '20% off applied' },
 };
 
 export default function CheckoutPage() {
@@ -59,7 +58,7 @@ export default function CheckoutPage() {
 
   const discount = appliedCode ? DISCOUNT_CODES[appliedCode] : null;
   const discountAmount = discount?.percentOff ? totalPrice * discount.percentOff / 100 : 0;
-  const qualifiesForFreeShipping = (totalPrice - discountAmount) >= 100;
+  const qualifiesForFreeShipping = (totalPrice - discountAmount) >= 50;
 
   // Expedited is ALWAYS $14 — never free
   const shippingCost = shippingMethod === 'pickup'
@@ -370,7 +369,7 @@ export default function CheckoutPage() {
                 </div>
               )}
               <div className="flex justify-between text-sm text-gray-500">
-                <span>Shipping {qualifiesForFreeShipping && shippingMethod === 'standard' && !discount?.freeShipping ? '(free over $100)' : ''}</span>
+                <span>Shipping {qualifiesForFreeShipping && shippingMethod === 'standard' && !discount?.freeShipping ? '(free over $50)' : ''}</span>
                 <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
               </div>
               {taxAmount > 0 && (
