@@ -10,7 +10,7 @@ export async function GET() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        location_ids: [process.env.SQUARE_LOCATION_ID],
+        location_ids: [process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID],
         query: {
           sort: {
             sort_field: 'CREATED_AT',
