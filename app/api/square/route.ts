@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         idempotency_key: crypto.randomUUID(),
         order: {
-          location_id: process.env.SQUARE_LOCATION_ID,
+          location_id: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID,
           line_items: lineItems,
           ...(discountAmount > 0 ? {
             discounts: [{
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
         idempotency_key: crypto.randomUUID(),
         amount_money: { amount: totalAmount, currency: 'USD' },
         order_id: squareOrderId,
-        location_id: process.env.SQUARE_LOCATION_ID,
+        location_id: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID,
         buyer_email_address: customer.email,
         note: `Order for ${customer.name}${discountCode ? ` | Code: ${discountCode}` : ''}`,
       }),
