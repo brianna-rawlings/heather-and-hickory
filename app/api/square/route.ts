@@ -28,7 +28,6 @@ const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(ip)) {
       return NextResponse.json({ error: 'Too many payment attempts. Please try again later.' }, { status: 429 });
@@ -43,7 +42,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing customer information' }, { status: 400 });
     }
 
-    // Fetch real prices from Square catalog
     const catalogRes = await fetch(`${process.env.SQUARE_API_URL}/v2/catalog/list?types=ITEM`, {
       headers: {
         'Square-Version': '2024-01-18',
@@ -72,7 +70,6 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Build line items and calculate subtotal
     let subtotal = 0;
     const lineItems: any[] = [];
     const orderItems: { name: string; quantity: number; price: string }[] = [];
@@ -112,16 +109,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Calculate discounts and shipping
     const discount = DISCOUNT_CODES_BACKEND[discountCode?.toUpperCase()];
     const discountAmount = discount?.percentOff ? Math.round(subtotal * discount.percentOff / 100) : 0;
     const subtotalAfterDiscount = subtotal - discountAmount;
 
-    // Expedited shipping is NEVER free
     let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : shippingMethod === 'pickup' ? 0 : SHIPPING_STANDARD;
     if (shippingMethod === 'standard' && (discount?.freeShipping || subtotalAfterDiscount >= 5000)) {
-  shippingAmount = 0;
-}
+      shippingAmount = 0;
+    }
 
     const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
     const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
@@ -131,7 +126,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });
     }
 
-    // Step 1: Create a proper Square Order
+    // Step 1: Create Square Order
     const orderRes = await fetch(`${process.env.SQUARE_API_URL}/v2/orders`, {
       method: 'POST',
       headers: {
@@ -201,6 +196,8 @@ export async function POST(req: NextRequest) {
     }
 
     const squareOrderId = orderData.order?.id;
+    // Use Square's calculated total to avoid mismatch with Apple Pay
+    const orderTotal = orderData.order?.total_money?.amount || totalAmount;
 
     // Step 2: Process payment attached to the order
     const paymentRes = await fetch(`${process.env.SQUARE_API_URL}/v2/payments`, {
@@ -213,7 +210,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         source_id: sourceId,
         idempotency_key: crypto.randomUUID(),
-        amount_money: { amount: totalAmount, currency: 'USD' },
+        amount_money: { amount: orderTotal, currency: 'USD' },
         order_id: squareOrderId,
         location_id: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID,
         buyer_email_address: customer.email,
@@ -269,7 +266,7 @@ export async function POST(req: NextRequest) {
                 </div>` : ''}
               <div style="border-top: 1px solid #e5e5e5; margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between;">
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">Total</span>
-                <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">$${(totalAmount / 100).toFixed(2)}</span>
+                <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">$${(orderTotal / 100).toFixed(2)}</span>
               </div>
             </div>
             <div style="margin-bottom: 32px;">
@@ -294,7 +291,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: 'Heather & Hickory <orders@heatherandhickory.com>',
       to: 'heatherandhickory@gmail.com',
-      subject: `New Order #${orderId} — $${(totalAmount / 100).toFixed(2)}`,
+      subject: `New Order #${orderId} — $${(orderTotal / 100).toFixed(2)}`,
       html: `
         <div style="font-family: sans-serif; padding: 24px;">
           <h2>New Order Received!</h2>
@@ -308,7 +305,7 @@ export async function POST(req: NextRequest) {
           ${discountAmount > 0 ? `<p><strong>Discount:</strong> -$${(discountAmount / 100).toFixed(2)}</p>` : ''}
           <p><strong>Shipping:</strong> ${shippingMethod === 'pickup' ? '🎓 CAMPUS PICKUP — arrange delivery with student' : shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</p>
           ${taxAmount > 0 ? `<p><strong>Tax (KS 6.5%):</strong> $${(taxAmount / 100).toFixed(2)}</p>` : ''}
-          <h3>Total: $${(totalAmount / 100).toFixed(2)}</h3>
+          <h3>Total: $${(orderTotal / 100).toFixed(2)}</h3>
         </div>
       `,
     });
