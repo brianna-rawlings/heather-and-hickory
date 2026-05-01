@@ -27,7 +27,7 @@ export default function CheckoutPage() {
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [orderId, setOrderId] = useState('');
-  const [shippingMethod, setShippingMethod] = useState<'standard' | 'expedited'>('standard');
+  const [shippingMethod, setShippingMethod] = useState<'standard' | 'expedited' | 'pickup'>('standard');
   const [discountCode, setDiscountCode] = useState('');
   const [appliedCode, setAppliedCode] = useState('');
   const [codeError, setCodeError] = useState('');
@@ -62,9 +62,11 @@ export default function CheckoutPage() {
   const qualifiesForFreeShipping = (totalPrice - discountAmount) >= 100;
 
   // Expedited is ALWAYS $14 — never free
-  const shippingCost = shippingMethod === 'expedited'
-    ? 14
-    : (discount?.freeShipping || qualifiesForFreeShipping ? 0 : 6);
+  const shippingCost = shippingMethod === 'pickup'
+  ? 0
+  : shippingMethod === 'expedited'
+  ? 14
+  : (discount?.freeShipping || qualifiesForFreeShipping ? 0 : 6);
 
   const taxRate = customer.address.state.toUpperCase() === 'KS' ? 0.065 : 0;
   const taxAmount = parseFloat(((totalPrice - discountAmount) * taxRate).toFixed(2));
@@ -240,6 +242,16 @@ export default function CheckoutPage() {
                     <p className="text-xs text-gray-400">2–3 business days</p>
                   </div>
                   <span className="text-sm font-semibold text-[#435e48]">$14.00</span>
+                </button>
+                <button
+                  onClick={() => setShippingMethod('pickup')}
+                  className={`w-full flex justify-between items-center px-4 py-4 border transition-all duration-200 ${shippingMethod === 'pickup' ? 'border-[#4c2a17] bg-[#4c2a17]/5' : 'border-gray-200 hover:border-gray-300'}`}
+                >
+                  <div className="text-left">
+                    <p className="text-sm text-[#4c2a17] font-medium">Taylor University Campus Pickup</p>
+                    <p className="text-xs text-gray-400">We'll reach out to arrange pickup on campus</p>
+                  </div>
+                  <span className="text-sm font-semibold text-[#435e48]">Free</span>
                 </button>
               </div>
             </div>

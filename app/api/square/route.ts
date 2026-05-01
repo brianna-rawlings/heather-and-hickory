@@ -119,10 +119,10 @@ export async function POST(req: NextRequest) {
     const subtotalAfterDiscount = subtotal - discountAmount;
 
     // Expedited shipping is NEVER free
-    let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : SHIPPING_STANDARD;
-    if (shippingMethod !== 'expedited' && (discount?.freeShipping || subtotalAfterDiscount >= 10000)) {
-      shippingAmount = 0;
-    }
+    let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : shippingMethod === 'pickup' ? 0 : SHIPPING_STANDARD;
+if (shippingMethod === 'standard' && (discount?.freeShipping || subtotalAfterDiscount >= 10000)) {
+  shippingAmount = 0;
+}
 
     const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
     const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
@@ -307,7 +307,7 @@ export async function POST(req: NextRequest) {
           <h3>Items:</h3>
           ${orderItems.map(item => `<p>${item.name} × ${item.quantity} — ${item.price}</p>`).join('')}
           ${discountAmount > 0 ? `<p><strong>Discount:</strong> -$${(discountAmount / 100).toFixed(2)}</p>` : ''}
-          <p><strong>Shipping:</strong> ${shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</p>
+          <p><strong>Shipping:</strong> ${shippingMethod === 'pickup' ? '🎓 CAMPUS PICKUP — arrange delivery with student' : shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</p>
           ${taxAmount > 0 ? `<p><strong>Tax (KS 6.5%):</strong> $${(taxAmount / 100).toFixed(2)}</p>` : ''}
           <h3>Total: $${(totalAmount / 100).toFixed(2)}</h3>
         </div>
