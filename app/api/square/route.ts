@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
                 email_address: customer.email,
                 address: {
                   address_line_1: customer.address.line1,
-                  address_line_2: customer.address.line2 || '',
+                  ...(customer.address.line2 ? { address_line_2: customer.address.line2 } : {}),
                   locality: customer.address.city,
                   administrative_district_level_1: customer.address.state,
                   postal_code: customer.address.zip,
