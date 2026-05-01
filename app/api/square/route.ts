@@ -18,7 +18,7 @@ function checkRateLimit(ip: string): boolean {
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const SHIPPING_STANDARD = 600;
+const SHIPPING_STANDARD = 700;
 const SHIPPING_EXPEDITED = 1400;
 
 const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number }> = {

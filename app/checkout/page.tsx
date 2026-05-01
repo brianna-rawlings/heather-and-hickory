@@ -65,7 +65,7 @@ export default function CheckoutPage() {
   ? 0
   : shippingMethod === 'expedited'
   ? 14
-  : (discount?.freeShipping || qualifiesForFreeShipping ? 0 : 6);
+  : (discount?.freeShipping || qualifiesForFreeShipping ? 0 : 7);
 
   const taxRate = customer.address.state.toUpperCase() === 'KS' ? 0.065 : 0;
   const taxAmount = parseFloat(((totalPrice - discountAmount) * taxRate).toFixed(2));
@@ -229,7 +229,7 @@ export default function CheckoutPage() {
                     <p className="text-xs text-gray-400">5–7 business days</p>
                   </div>
                   <span className="text-sm font-semibold text-[#435e48]">
-                    {discount?.freeShipping || qualifiesForFreeShipping ? 'Free' : '$6.00'}
+                    {discount?.freeShipping || qualifiesForFreeShipping ? 'Free' : '$7.00'}
                   </span>
                 </button>
                 <button
