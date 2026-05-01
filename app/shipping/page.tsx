@@ -33,7 +33,7 @@ export default function ShippingPage() {
                     <tr>
                       <td className="px-6 py-4">Standard Shipping</td>
                       <td className="px-6 py-4">5–7 business days</td>
-                      <td className="px-6 py-4">$6.00</td>
+                      <td className="px-6 py-4">$7.00</td>
                     </tr>
                     <tr>
                       <td className="px-6 py-4">Expedited Shipping</td>
@@ -43,7 +43,12 @@ export default function ShippingPage() {
                     <tr>
                       <td className="px-6 py-4">Free Standard Shipping</td>
                       <td className="px-6 py-4">5–7 business days</td>
-                      <td className="px-6 py-4 text-[#435e48] font-semibold">Orders over $100</td>
+                      <td className="px-6 py-4 text-[#435e48] font-semibold">Orders over $50</td>
+                    </tr>
+                    <tr>
+                      <td className="px-6 py-4">Taylor University Campus Pickup</td>
+                      <td className="px-6 py-4">Arranged via email</td>
+                      <td className="px-6 py-4 text-[#435e48] font-semibold">Free</td>
                     </tr>
                   </tbody>
                 </table>
