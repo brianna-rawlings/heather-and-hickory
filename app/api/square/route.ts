@@ -7,14 +7,11 @@ const rateLimit = new Map<string, { count: number; resetAt: number }>();
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const limit = rateLimit.get(ip);
-
   if (!limit || now > limit.resetAt) {
     rateLimit.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 });
     return true;
   }
-
   if (limit.count >= 10) return false;
-
   limit.count++;
   return true;
 }
@@ -24,8 +21,15 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const SHIPPING_STANDARD = 600;
 const SHIPPING_EXPEDITED = 1400;
 
+const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number }> = {
+  'HHFREESHIP': { freeShipping: true, percentOff: 0 },
+  'TAYLOR10': { freeShipping: true, percentOff: 10 },
+  'HICKORY10': { freeShipping: false, percentOff: 10 },
+};
+
 export async function POST(req: NextRequest) {
   try {
+    // Rate limiting
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(ip)) {
       return NextResponse.json({ error: 'Too many payment attempts. Please try again later.' }, { status: 429 });
@@ -36,7 +40,6 @@ export async function POST(req: NextRequest) {
     if (!sourceId || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-
     if (!customer?.email || !customer?.name || !customer?.address) {
       return NextResponse.json({ error: 'Missing customer information' }, { status: 400 });
     }
@@ -94,71 +97,42 @@ export async function POST(req: NextRequest) {
       }
 
       subtotal += unitPrice * quantity;
-
       const itemName = name || nameMap[variationId] || 'Item';
+
+      lineItems.push({
+        name: itemName,
+        quantity: String(quantity),
+        base_price_money: { amount: unitPrice, currency: 'USD' },
+        ...(variationId ? { catalog_object_id: variationId } : {}),
+      });
+
       orderItems.push({
         name: itemName,
         quantity,
         price: `$${((unitPrice * quantity) / 100).toFixed(2)}`,
       });
-
-      // Square order line item
-      lineItems.push({
-        name: itemName,
-        quantity: String(quantity),
-        base_price_money: {
-          amount: unitPrice,
-          currency: 'USD',
-        },
-        ...(variationId ? { catalog_object_id: variationId } : {}),
-      });
     }
 
-    // Discount logic
-    const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number }> = {
-      'HHFREESHIP': { freeShipping: true, percentOff: 0 },
-      'TAYLOR10': { freeShipping: true, percentOff: 10 },
-      'HICKORY10': { freeShipping: false, percentOff: 10 },
-    };
-
+    // Calculate discounts and shipping
     const discount = DISCOUNT_CODES_BACKEND[discountCode?.toUpperCase()];
-    let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : SHIPPING_STANDARD;
     const discountAmount = discount?.percentOff ? Math.round(subtotal * discount.percentOff / 100) : 0;
     const subtotalAfterDiscount = subtotal - discountAmount;
 
-    if (discount?.freeShipping || subtotalAfterDiscount >= 10000) {
+    // Expedited shipping is NEVER free
+    let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : SHIPPING_STANDARD;
+    if (shippingMethod !== 'expedited' && (discount?.freeShipping || subtotalAfterDiscount >= 10000)) {
       shippingAmount = 0;
     }
 
     const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
     const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
-    const totalAmount = subtotal - discountAmount + shippingAmount + taxAmount;
+    const totalAmount = subtotalAfterDiscount + shippingAmount + taxAmount;
 
     if (totalAmount <= 0) {
       return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });
     }
 
-    // Build Square order discounts array
-    const squareDiscounts: any[] = [];
-    if (discountAmount > 0) {
-      squareDiscounts.push({
-        name: discountCode?.toUpperCase(),
-        amount_money: { amount: discountAmount, currency: 'USD' },
-        scope: 'ORDER',
-      });
-    }
-
-    // Build Square order taxes array
-    const squareTaxes: any[] = [];
-    if (taxAmount > 0) {
-      squareTaxes.push({
-        name: 'KS Sales Tax (6.5%)',
-        percentage: '6.5',
-        scope: 'ORDER',
-      });
-    }
-
-    // Step 1: Create Square Order
+    // Step 1: Create a proper Square Order
     const orderRes = await fetch(`${process.env.SQUARE_API_URL}/v2/orders`, {
       method: 'POST',
       headers: {
@@ -169,32 +143,53 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         idempotency_key: crypto.randomUUID(),
         order: {
-          location_id: process.env.SQUARE_LOCATION_ID,
+          location_id: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID,
           line_items: lineItems,
-          ...(squareDiscounts.length > 0 ? { discounts: squareDiscounts } : {}),
-          ...(squareTaxes.length > 0 ? { taxes: squareTaxes } : {}),
-          fulfillments: [
-            {
-              type: 'SHIPMENT',
-              state: 'PROPOSED',
-              shipment_details: {
-                recipient: {
-                  display_name: customer.name,
-                  email_address: customer.email,
-                  address: {
-                    address_line_1: customer.address.line1,
-                    address_line_2: customer.address.line2 || '',
-                    locality: customer.address.city,
-                    administrative_district_level_1: customer.address.state,
-                    postal_code: customer.address.zip,
-                    country: 'US',
-                  },
+          ...(discountAmount > 0 ? {
+            discounts: [{
+              name: discountCode?.toUpperCase() || 'Discount',
+              amount_money: { amount: discountAmount, currency: 'USD' },
+              scope: 'ORDER',
+            }],
+          } : {}),
+          ...(shippingAmount > 0 ? {
+            service_charges: [{
+              name: shippingMethod === 'expedited' ? 'Expedited Shipping' : 'Standard Shipping',
+              amount_money: { amount: shippingAmount, currency: 'USD' },
+              calculation_phase: 'TOTAL_PHASE',
+            }],
+          } : {}),
+          ...(taxAmount > 0 ? {
+            taxes: [{
+              name: 'Kansas Sales Tax',
+              percentage: '6.5',
+              scope: 'ORDER',
+            }],
+          } : {}),
+          fulfillments: [{
+            type: 'SHIPMENT',
+            state: 'PROPOSED',
+            shipment_details: {
+              recipient: {
+                display_name: customer.name,
+                email_address: customer.email,
+                address: {
+                  address_line_1: customer.address.line1,
+                  address_line_2: customer.address.line2 || '',
+                  locality: customer.address.city,
+                  administrative_district_level_1: customer.address.state,
+                  postal_code: customer.address.zip,
+                  country: 'US',
                 },
-                carrier: shippingMethod === 'expedited' ? 'Expedited Shipping' : 'Standard Shipping',
-                shipping_note: discountCode ? `Discount code: ${discountCode}` : undefined,
               },
             },
-          ],
+          }],
+          metadata: {
+            customer_name: customer.name,
+            customer_email: customer.email,
+            shipping_method: shippingMethod,
+            ...(discountCode ? { discount_code: discountCode } : {}),
+          },
         },
       }),
     });
@@ -202,7 +197,7 @@ export async function POST(req: NextRequest) {
     const orderData = await orderRes.json();
 
     if (!orderRes.ok) {
-      console.error('Square order creation failed:', orderData);
+      console.error('Square order creation error:', orderData);
       return NextResponse.json({ error: orderData.errors?.[0]?.detail || 'Failed to create order' }, { status: 400 });
     }
 
@@ -220,17 +215,9 @@ export async function POST(req: NextRequest) {
         source_id: sourceId,
         idempotency_key: crypto.randomUUID(),
         amount_money: { amount: totalAmount, currency: 'USD' },
-        order_id: squareOrderId, // 👈 this is the key change
-        location_id: process.env.SQUARE_LOCATION_ID,
+        order_id: squareOrderId,
+        location_id: process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID,
         buyer_email_address: customer.email,
-        shipping_address: {
-          address_line_1: customer.address.line1,
-          address_line_2: customer.address.line2 || '',
-          locality: customer.address.city,
-          administrative_district_level_1: customer.address.state,
-          postal_code: customer.address.zip,
-          country: 'US',
-        },
         note: `Order for ${customer.name}${discountCode ? ` | Code: ${discountCode}` : ''}`,
       }),
     });
@@ -238,6 +225,7 @@ export async function POST(req: NextRequest) {
     const paymentData = await paymentRes.json();
 
     if (!paymentRes.ok) {
+      console.error('Square payment error:', paymentData);
       return NextResponse.json({ error: paymentData.errors?.[0]?.detail || 'Payment failed' }, { status: 400 });
     }
 
@@ -266,13 +254,20 @@ export async function POST(req: NextRequest) {
                   <span style="font-size: 13px; color: #435e48; font-weight: bold;">${item.price}</span>
                 </div>
               `).join('')}
-              ${discountAmount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span style="font-size: 13px; color: #435e48;">Discount (${discountCode})</span><span style="font-size: 13px; color: #435e48;">-$${(discountAmount / 100).toFixed(2)}</span></div>` : ''}
+              ${discountAmount > 0 ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                  <span style="font-size: 13px; color: #435e48;">Discount (${discountCode})</span>
+                  <span style="font-size: 13px; color: #435e48;">-$${(discountAmount / 100).toFixed(2)}</span>
+                </div>` : ''}
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span style="font-size: 13px; color: #4c2a17;">Shipping</span>
+                <span style="font-size: 13px; color: #435e48;">${shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</span>
+              </div>
               ${taxAmount > 0 ? `
                 <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
                   <span style="font-size: 13px; color: #4c2a17;">Tax (KS 6.5%)</span>
                   <span style="font-size: 13px; color: #435e48;">$${(taxAmount / 100).toFixed(2)}</span>
-                </div>
-              ` : ''}
+                </div>` : ''}
               <div style="border-top: 1px solid #e5e5e5; margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between;">
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">Total</span>
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">$${(totalAmount / 100).toFixed(2)}</span>
@@ -305,7 +300,6 @@ export async function POST(req: NextRequest) {
         <div style="font-family: sans-serif; padding: 24px;">
           <h2>New Order Received!</h2>
           <p><strong>Order:</strong> #${orderId}</p>
-          <p><strong>Square Order ID:</strong> ${squareOrderId}</p>
           <p><strong>Customer:</strong> ${customer.name}</p>
           <p><strong>Email:</strong> ${customer.email}</p>
           <p><strong>Address:</strong> ${customer.address.line1}, ${customer.address.city}, ${customer.address.state} ${customer.address.zip}</p>
@@ -314,6 +308,7 @@ export async function POST(req: NextRequest) {
           ${orderItems.map(item => `<p>${item.name} × ${item.quantity} — ${item.price}</p>`).join('')}
           ${discountAmount > 0 ? `<p><strong>Discount:</strong> -$${(discountAmount / 100).toFixed(2)}</p>` : ''}
           <p><strong>Shipping:</strong> ${shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</p>
+          ${taxAmount > 0 ? `<p><strong>Tax (KS 6.5%):</strong> $${(taxAmount / 100).toFixed(2)}</p>` : ''}
           <h3>Total: $${(totalAmount / 100).toFixed(2)}</h3>
         </div>
       `,

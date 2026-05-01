@@ -78,12 +78,12 @@ export default function ProductCard({ product }: { product: Product }) {
         <p className="text-[10px] uppercase tracking-[0.15em] text-gray-500 mb-1 truncate">
           {product.category}
         </p>
-        <h3 className="text-base lg:text-lg font-bodoni text-hickory leading-tight">
-          {product.name}
-        </h3>
-        <p className="mt-1 text-sm text-heather-green font-semibold">
-          {product.price}
-        </p>
+        <h3 className="text-base lg:text-lg font-bodoni text-[#4c2a17] leading-tight">
+  {product.name}
+</h3>
+<p className="mt-1 text-sm text-[#435e48] font-semibold">
+  {product.price}
+</p>
       </div>
     </Link>
   );
