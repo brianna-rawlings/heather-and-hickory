@@ -7,33 +7,30 @@ const rateLimit = new Map<string, { count: number; resetAt: number }>();
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const limit = rateLimit.get(ip);
-  
+
   if (!limit || now > limit.resetAt) {
-    rateLimit.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 }); // 1 hour window
+    rateLimit.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 });
     return true;
   }
-  
-  if (limit.count >= 10) return false; // Max 10 attempts per hour
-  
+
+  if (limit.count >= 10) return false;
+
   limit.count++;
   return true;
 }
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const SHIPPING_STANDARD = 600; // $6.00 in cents
-const SHIPPING_EXPEDITED = 1400; // $14.00 in cents
-
-
+const SHIPPING_STANDARD = 600;
+const SHIPPING_EXPEDITED = 1400;
 
 export async function POST(req: NextRequest) {
   try {
-    // Rate limiting
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(ip)) {
       return NextResponse.json({ error: 'Too many payment attempts. Please try again later.' }, { status: 429 });
     }
-    
+
     const { sourceId, items, customer, shippingMethod, discountCode } = await req.json();
 
     if (!sourceId || !items || !Array.isArray(items) || items.length === 0) {
@@ -44,7 +41,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing customer information' }, { status: 400 });
     }
 
-    // Fetch real prices from Square
+    // Fetch real prices from Square catalog
     const catalogRes = await fetch(`${process.env.SQUARE_API_URL}/v2/catalog/list?types=ITEM`, {
       headers: {
         'Square-Version': '2024-01-18',
@@ -73,8 +70,9 @@ export async function POST(req: NextRequest) {
       }
     });
 
-    // Calculate subtotal
+    // Build line items and calculate subtotal
     let subtotal = 0;
+    const lineItems: any[] = [];
     const orderItems: { name: string; quantity: number; price: string }[] = [];
 
     for (const item of items) {
@@ -96,38 +94,121 @@ export async function POST(req: NextRequest) {
       }
 
       subtotal += unitPrice * quantity;
+
+      const itemName = name || nameMap[variationId] || 'Item';
       orderItems.push({
-        name: name || nameMap[variationId] || 'Item',
+        name: itemName,
         quantity,
         price: `$${((unitPrice * quantity) / 100).toFixed(2)}`,
       });
+
+      // Square order line item
+      lineItems.push({
+        name: itemName,
+        quantity: String(quantity),
+        base_price_money: {
+          amount: unitPrice,
+          currency: 'USD',
+        },
+        ...(variationId ? { catalog_object_id: variationId } : {}),
+      });
     }
 
-    // Apply discount code
+    // Discount logic
     const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number }> = {
       'HHFREESHIP': { freeShipping: true, percentOff: 0 },
       'TAYLOR10': { freeShipping: true, percentOff: 10 },
       'HICKORY10': { freeShipping: false, percentOff: 10 },
     };
-    
-    let discount = DISCOUNT_CODES_BACKEND[discountCode?.toUpperCase()];
+
+    const discount = DISCOUNT_CODES_BACKEND[discountCode?.toUpperCase()];
     let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : SHIPPING_STANDARD;
-    let discountAmount = discount?.percentOff ? Math.round(subtotal * discount.percentOff / 100) : 0;
-    
+    const discountAmount = discount?.percentOff ? Math.round(subtotal * discount.percentOff / 100) : 0;
     const subtotalAfterDiscount = subtotal - discountAmount;
+
     if (discount?.freeShipping || subtotalAfterDiscount >= 10000) {
       shippingAmount = 0;
     }
 
-const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
-const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
-const totalAmount = subtotal - discountAmount + shippingAmount + taxAmount;
+    const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
+    const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
+    const totalAmount = subtotal - discountAmount + shippingAmount + taxAmount;
 
     if (totalAmount <= 0) {
       return NextResponse.json({ error: 'Invalid order total' }, { status: 400 });
     }
 
-    // Process payment
+    // Build Square order discounts array
+    const squareDiscounts: any[] = [];
+    if (discountAmount > 0) {
+      squareDiscounts.push({
+        name: discountCode?.toUpperCase(),
+        amount_money: { amount: discountAmount, currency: 'USD' },
+        scope: 'ORDER',
+      });
+    }
+
+    // Build Square order taxes array
+    const squareTaxes: any[] = [];
+    if (taxAmount > 0) {
+      squareTaxes.push({
+        name: 'KS Sales Tax (6.5%)',
+        percentage: '6.5',
+        scope: 'ORDER',
+      });
+    }
+
+    // Step 1: Create Square Order
+    const orderRes = await fetch(`${process.env.SQUARE_API_URL}/v2/orders`, {
+      method: 'POST',
+      headers: {
+        'Square-Version': '2024-01-18',
+        'Authorization': `Bearer ${process.env.SQUARE_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        idempotency_key: crypto.randomUUID(),
+        order: {
+          location_id: process.env.SQUARE_LOCATION_ID,
+          line_items: lineItems,
+          ...(squareDiscounts.length > 0 ? { discounts: squareDiscounts } : {}),
+          ...(squareTaxes.length > 0 ? { taxes: squareTaxes } : {}),
+          fulfillments: [
+            {
+              type: 'SHIPMENT',
+              state: 'PROPOSED',
+              shipment_details: {
+                recipient: {
+                  display_name: customer.name,
+                  email_address: customer.email,
+                  address: {
+                    address_line_1: customer.address.line1,
+                    address_line_2: customer.address.line2 || '',
+                    locality: customer.address.city,
+                    administrative_district_level_1: customer.address.state,
+                    postal_code: customer.address.zip,
+                    country: 'US',
+                  },
+                },
+                carrier: shippingMethod === 'expedited' ? 'Expedited Shipping' : 'Standard Shipping',
+                shipping_note: discountCode ? `Discount code: ${discountCode}` : undefined,
+              },
+            },
+          ],
+        },
+      }),
+    });
+
+    const orderData = await orderRes.json();
+
+    if (!orderRes.ok) {
+      console.error('Square order creation failed:', orderData);
+      return NextResponse.json({ error: orderData.errors?.[0]?.detail || 'Failed to create order' }, { status: 400 });
+    }
+
+    const squareOrderId = orderData.order?.id;
+
+    // Step 2: Process payment attached to the order
     const paymentRes = await fetch(`${process.env.SQUARE_API_URL}/v2/payments`, {
       method: 'POST',
       headers: {
@@ -139,6 +220,7 @@ const totalAmount = subtotal - discountAmount + shippingAmount + taxAmount;
         source_id: sourceId,
         idempotency_key: crypto.randomUUID(),
         amount_money: { amount: totalAmount, currency: 'USD' },
+        order_id: squareOrderId, // 👈 this is the key change
         location_id: process.env.SQUARE_LOCATION_ID,
         buyer_email_address: customer.email,
         shipping_address: {
@@ -159,7 +241,7 @@ const totalAmount = subtotal - discountAmount + shippingAmount + taxAmount;
       return NextResponse.json({ error: paymentData.errors?.[0]?.detail || 'Payment failed' }, { status: 400 });
     }
 
-    const orderId = paymentData.payment?.id?.slice(-8).toUpperCase() || 'HH' + Date.now().toString().slice(-6);
+    const orderId = squareOrderId?.slice(-8).toUpperCase() || 'HH' + Date.now().toString().slice(-6);
 
     // Send confirmation email to customer
     await resend.emails.send({
@@ -186,11 +268,11 @@ const totalAmount = subtotal - discountAmount + shippingAmount + taxAmount;
               `).join('')}
               ${discountAmount > 0 ? `<div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span style="font-size: 13px; color: #435e48;">Discount (${discountCode})</span><span style="font-size: 13px; color: #435e48;">-$${(discountAmount / 100).toFixed(2)}</span></div>` : ''}
               ${taxAmount > 0 ? `
-  <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-    <span style="font-size: 13px; color: #4c2a17;">Tax (KS 6.5%)</span>
-    <span style="font-size: 13px; color: #435e48;">$${(taxAmount / 100).toFixed(2)}</span>
-  </div>
-` : ''}
+                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                  <span style="font-size: 13px; color: #4c2a17;">Tax (KS 6.5%)</span>
+                  <span style="font-size: 13px; color: #435e48;">$${(taxAmount / 100).toFixed(2)}</span>
+                </div>
+              ` : ''}
               <div style="border-top: 1px solid #e5e5e5; margin-top: 16px; padding-top: 16px; display: flex; justify-content: space-between;">
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">Total</span>
                 <span style="font-size: 13px; font-weight: bold; color: #4c2a17;">$${(totalAmount / 100).toFixed(2)}</span>
@@ -223,6 +305,7 @@ const totalAmount = subtotal - discountAmount + shippingAmount + taxAmount;
         <div style="font-family: sans-serif; padding: 24px;">
           <h2>New Order Received!</h2>
           <p><strong>Order:</strong> #${orderId}</p>
+          <p><strong>Square Order ID:</strong> ${squareOrderId}</p>
           <p><strong>Customer:</strong> ${customer.name}</p>
           <p><strong>Email:</strong> ${customer.email}</p>
           <p><strong>Address:</strong> ${customer.address.line1}, ${customer.address.city}, ${customer.address.state} ${customer.address.zip}</p>
