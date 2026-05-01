@@ -295,6 +295,7 @@ export default function CheckoutPage() {
               )}
 
               <PaymentForm
+                key={`${orderTotal}-${shippingMethod}-${appliedCode}`}
                 applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID!}
                 locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!}
                 cardTokenizeResponseReceived={handlePayment}
