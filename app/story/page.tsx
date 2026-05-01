@@ -93,7 +93,7 @@ export default function StoryPage() {
                     style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
                   >
                     heather & hickory
-                  </span>{' '}
+                  </span>.{' '}
                 I grew up in Wichita, Kansas, and golf has been a part of my life for as long as I can remember.
                 My family and I have always been passionate about the game, and it has played a 
                 significant role in shaping who I am today. 
@@ -112,7 +112,7 @@ export default function StoryPage() {
                     style={{ fontFamily: '"Bodoni 72 Oldstyle", "Bodoni 72", serif' }}
                   >
                     heather & hickory
-                  </span>{' '} 
+                  </span>.{' '} 
                 We wanted to honor those traditions and share our love for golf through our clothes. 
                 Every piece we create is a reflection of that heritage, designed to share
                 the history of golf into modern styles of clothing that can be worn on and off the course.
