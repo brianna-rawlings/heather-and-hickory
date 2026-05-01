@@ -66,15 +66,7 @@ export default function AdminPage() {
   };
 
   const handleCreateLabel = (order: Order) => {
-    const params = new URLSearchParams({
-      'ship_to_name': order.customerName,
-      'ship_to_street1': order.address.line1,
-      'ship_to_street2': order.address.line2 || '',
-      'ship_to_city': order.address.city,
-      'ship_to_state': order.address.state,
-      'ship_to_zip': order.address.zip,
-    });
-    window.open(`https://ship.pirateship.com/create/shipment?${params.toString()}`, '_blank');
+    window.open(`https://squareup.com/dashboard/orders/overview/${order.id}`, '_blank');
   };
 
   const handleSendShipping = async (order: Order) => {
