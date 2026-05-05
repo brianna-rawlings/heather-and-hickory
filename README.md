@@ -1,5 +1,7 @@
 # heather & hickory.
 
+# brianna rawlings
+
 Golf apparel & accessories e-commerce store built with Next.js and Square.
 
 🌐 [heatherandhickory.com](https://heatherandhickory.com)
