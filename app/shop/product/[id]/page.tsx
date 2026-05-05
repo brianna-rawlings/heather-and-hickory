@@ -317,7 +317,7 @@ export default function ProductPage({ params }: { params: Promise<{ id: string }
               <Accordion title="Shipping & Returns">
                 <p className="mb-2">Standard shipping: $6 (5–7 business days)</p>
                 <p className="mb-2">Expedited shipping: $14 (2–3 business days)</p>
-                <p className="mb-2">Free shipping on orders over $100.</p>
+                <p className="mb-2">Free shipping on orders over $50.</p>
                 <p>We accept returns within 30 days of purchase on unworn items with tags attached. Free size exchanges — just reach out to heatherandhickory@gmail.com.</p>
               </Accordion>
             </div>
