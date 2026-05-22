@@ -120,13 +120,12 @@ export async function GET() {
     products.sort((a: any, b: any) => {
       const getTypeOrder = (name: string) => {
         const n = name.toLowerCase();
-        if (n.includes('pullover') || n.includes('quarter zip') || n.includes('zip')) return 1;
+        if (n.includes('pullover') || n.includes('quarter zip') || n.includes('zip') || n.includes('vest')) return 1;
     if (n.includes('polo')) return 2;
-    if (n.includes('vest')) return 3;
-    if (n.includes('hat')) return 4;
-    if (n.includes('tee') || n.includes('t-shirt') || n.includes('shirt')) return 5;
-    if (n.includes('marker') || n.includes('chip') || n.includes('sticker') || n.includes('tees')) return 6;
-    return 7;
+    if (n.includes('hat')) return 3;
+    if (n.includes('tee') || n.includes('t-shirt') || n.includes('shirt')) return 4;
+    if (n.includes('marker') || n.includes('chip') || n.includes('sticker') || n.includes('tees')) return 5;
+    return 6;
       };
       return getTypeOrder(a.name) - getTypeOrder(b.name);
     });
