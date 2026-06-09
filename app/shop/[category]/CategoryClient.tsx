@@ -10,14 +10,7 @@ const categoryNames: Record<string, string> = {
   'hats-accessories': 'Hats & Accessories',
 };
 
-const categoryDescriptions: Record<string, string> = {
-  'shop-all': 'Shop the full Heather & Hickory collection — golf polos, pullovers, hats, and accessories built for the course.',
-  'polos-t-shirts': 'Heritage-inspired golf polos and t-shirts from Heather & Hickory. Built for the course, worn beyond it.',
-  'hoodies-zips': 'Golf pullovers and zip-ups from Heather & Hickory. Timeless style for every round.',
-  'hats-accessories': 'Golf hats and accessories from Heather & Hickory. Rooted in tradition, made to last.',
-};
-
-export default function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
+export default function CategoryClient({ params }: { params: Promise<{ category: string }> }) {
   const { category } = use(params);
   const { products, loading, error } = useProducts();
 
