@@ -48,6 +48,11 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+
+  verification: {
+    google: 'AFzzVaD58vx0CipzH3K9UhbbIhcU_rnYMm_drx5hOsY', // just the content value, not the full tag
+  },
+
 };
 
 export default function RootLayout({
