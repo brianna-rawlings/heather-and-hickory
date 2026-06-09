@@ -53,6 +53,10 @@ export const metadata: Metadata = {
     google: 'AFzzVaD58vx0CipzH3K9UhbbIhcU_rnYMm_drx5hOsY', // just the content value, not the full tag
   },
 
+  other: {
+    'p:domain_verify': 'de0425072e3a42a3e78968dfca927dd5', // just the content value
+  },
+
 };
 
 export default function RootLayout({
