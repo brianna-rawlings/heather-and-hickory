@@ -9,10 +9,10 @@ import EmailPopup from '@/components/EmailPopup';
 export const metadata: Metadata = {
   metadataBase: new URL('https://heatherandhickory.com'),
   title: {
-    default: 'heather & hickory',
+    default: 'heather & hickory — Golf Apparel Built for the Course',
     template: '%s | heather & hickory',
   },
-  description: 'Golf apparel built for the course. Rooted in tradition.',
+  description: 'Heritage-inspired golf apparel and accessories built for the course. Shop polos, pullovers, hats, and small goods from heather & hickory.',
   keywords: ['golf apparel', 'golf clothing', 'golf accessories', 'golf polo', 'golf hat', 'heritage golf', 'heather and hickory'],
   authors: [{ name: 'Heather & Hickory LLC' }],
   creator: 'Heather & Hickory LLC',
