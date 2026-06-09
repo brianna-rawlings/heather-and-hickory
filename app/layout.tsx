@@ -48,15 +48,44 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+};
 
-  verification: {
-    google: 'AFzzVaD58vx0CipzH3K9UhbbIhcU_rnYMm_drx5hOsY', // just the content value, not the full tag
+// JSON-LD Organization schema — tells Google about your brand
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Heather & Hickory',
+  alternateName: 'heather & hickory',
+  url: 'https://heatherandhickory.com',
+  logo: 'https://heatherandhickory.com/logo.png',
+  description: 'Golf apparel built for the course. Rooted in tradition.',
+  email: 'heatherandhickory@gmail.com',
+  sameAs: [
+    'https://www.instagram.com/heatherandhickory/',
+    'https://www.pinterest.com/heatherandhickory/',
+  ],
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'heatherandhickory@gmail.com',
+    contactType: 'Customer Service',
+    availableLanguage: 'English',
   },
+};
 
-  other: {
-    'p:domain_verify': 'de0425072e3a42a3e78968dfca927dd5', // just the content value
+// JSON-LD WebSite schema — enables sitelinks search box in Google results
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'heather & hickory',
+  url: 'https://heatherandhickory.com',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: 'https://heatherandhickory.com/shop/shop-all?q={search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
   },
-
 };
 
 export default function RootLayout({
@@ -66,6 +95,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+        />
+      </head>
       <body>
         <CartProvider>
           <Navbar />
