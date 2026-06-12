@@ -25,6 +25,7 @@ const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff
   'HICKORY10': { freeShipping: false, percentOff: 10 },
   'KASITZ20': { freeShipping: false, percentOff: 20 },
   'HERITAGE15': { freeShipping: false, percentOff: 15 },
+  'RYANLOPEZ10': { freeShipping: false, percentOff: 10},
 };
 
 export async function POST(req: NextRequest) {

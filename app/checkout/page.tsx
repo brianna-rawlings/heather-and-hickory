@@ -20,6 +20,7 @@ const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number
   'HICKORY10': { freeShipping: false, percentOff: 10, label: '10% off applied' },
   'KASITZ20': { freeShipping: false, percentOff: 20, label: '20% off applied' },
   'HERITAGE15': { freeShipping: false, percentOff: 15, label: '15% off applied' },
+  'RYANLOPEZ10': { freeShipping: false, percentOff: 10, label: '10% off applied' },
 };
 
 export default function CheckoutPage() {
