@@ -3,6 +3,7 @@ import Link from 'next/link';
 import ProductCarousel from '@/components/ProductCarousel';
 import ProductCard from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
+import InstagramFeed from "@/components/InstagramFeed"; // 👈 1. ADD THIS IMPORT TO FIX THE RED SQUIGGLY
 
 // Pieces to feature up top, in display order. Match by name (or partial name) —
 // edit this whenever your newest drop changes.
@@ -108,6 +109,8 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      
     </main>
   );
 }

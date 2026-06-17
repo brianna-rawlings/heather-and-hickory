@@ -7,6 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import EmailPopup from '@/components/EmailPopup';
 import SaleBanner from "@/components/SaleBanner";
 import SaleContent from "@/components/SaleContent";
+import InstagramFeed from "@/components/InstagramFeed"; // 👈 1. ADD THIS IMPORT TO FIX THE RED SQUIGGLY
 
 import { Libre_Caslon_Display, Jost } from 'next/font/google';
 
@@ -121,6 +122,7 @@ export default function RootLayout({
           <EmailPopup />
           <CartDrawer />
           <SaleContent>{children}</SaleContent>
+          <InstagramFeed />
           <Footer />
         </CartProvider>
       </body>
