@@ -28,7 +28,7 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
   });
 
   return (
-    <main className="min-h-screen bg-white pt-50">
+    <main className="min-h-screen bg-[#f9f7f4] pt-50 pb-24">
       <div className="max-w-7xl mx-auto px-6">
         <header className="mb-16 text-center">
           <h1 className="text-5xl font-serif italic text-[#4c2a17] mb-4">
@@ -38,7 +38,7 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
         </header>
 
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-16 mb-24">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-16">
             {[1, 2, 3].map(i => (
               <div key={i} className="animate-pulse">
                 <div className="aspect-[3/4] bg-gray-100" />

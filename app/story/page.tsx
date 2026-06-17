@@ -29,7 +29,7 @@ export default function StoryPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-white pt-52">
+    <main className="min-h-screen bg-[#f9f7f4] pt-52">
       
       {/* Editorial Header */}
       <section className="max-w-4xl mx-auto px-6 text-center mb-24">
