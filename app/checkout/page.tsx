@@ -16,11 +16,12 @@ interface CustomerInfo {
   };
 }
 
-const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number; label: string }> = {
+const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number; label: string; startsAt?: string; expiresAt?: string }> = {
   'HICKORY10': { freeShipping: false, percentOff: 10, label: '10% off applied' },
   'KASITZ20': { freeShipping: false, percentOff: 20, label: '20% off applied' },
   'HERITAGE15': { freeShipping: false, percentOff: 15, label: '15% off applied' },
   'RYANLOPEZ10': { freeShipping: false, percentOff: 10, label: '10% off applied' },
+  'FATHERSDAY20': { freeShipping: false, percentOff: 20, label: '20% off applied', startsAt: '2026-06-17T04:00:00Z', expiresAt: '2026-06-22T04:00:00Z' },
 };
 
 export default function CheckoutPage() {
@@ -49,13 +50,25 @@ export default function CheckoutPage() {
 
   const applyCode = () => {
     const code = discountCode.toUpperCase().trim();
-    if (DISCOUNT_CODES[code]) {
-      setAppliedCode(code);
-      setCodeError('');
-    } else {
+    const found = DISCOUNT_CODES[code];
+    if (!found) {
       setCodeError('Invalid discount code');
       setAppliedCode('');
+      return;
     }
+    const now = Date.now();
+    if (found.startsAt && now < new Date(found.startsAt).getTime()) {
+      setCodeError('This code is not active yet');
+      setAppliedCode('');
+      return;
+    }
+    if (found.expiresAt && now > new Date(found.expiresAt).getTime()) {
+      setCodeError('This code has expired');
+      setAppliedCode('');
+      return;
+    }
+    setAppliedCode(code);
+    setCodeError('');
   };
 
   const discount = appliedCode ? DISCOUNT_CODES[appliedCode] : null;

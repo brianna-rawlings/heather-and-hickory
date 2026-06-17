@@ -21,11 +21,12 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const SHIPPING_STANDARD = 700;
 const SHIPPING_EXPEDITED = 1400;
 
-const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number }> = {
+const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number; startsAt?: string; expiresAt?: string }> = {
   'HICKORY10': { freeShipping: false, percentOff: 10 },
   'KASITZ20': { freeShipping: false, percentOff: 20 },
   'HERITAGE15': { freeShipping: false, percentOff: 15 },
   'RYANLOPEZ10': { freeShipping: false, percentOff: 10},
+  'FATHERSDAY20': { freeShipping: false, percentOff: 20, startsAt: '2026-06-17T04:00:00Z', expiresAt: '2026-06-22T04:00:00Z' },
 };
 
 export async function POST(req: NextRequest) {
@@ -112,6 +113,18 @@ export async function POST(req: NextRequest) {
     }
 
     const discount = DISCOUNT_CODES_BACKEND[discountCode?.toUpperCase()];
+
+    // Reject codes that are outside their active window
+    if (discount && (discount.startsAt || discount.expiresAt)) {
+      const now = Date.now();
+      if (discount.startsAt && now < new Date(discount.startsAt).getTime()) {
+        return NextResponse.json({ error: 'This discount code is not active yet.' }, { status: 400 });
+      }
+      if (discount.expiresAt && now > new Date(discount.expiresAt).getTime()) {
+        return NextResponse.json({ error: 'This discount code has expired.' }, { status: 400 });
+      }
+    }
+
     const discountAmount = discount?.percentOff ? Math.round(subtotal * discount.percentOff / 100) : 0;
     const subtotalAfterDiscount = subtotal - discountAmount;
 
