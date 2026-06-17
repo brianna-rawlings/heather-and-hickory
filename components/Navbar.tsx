@@ -4,11 +4,13 @@ import Image from 'next/image';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useState } from 'react';
+import { useSaleActive } from '@/lib/sale';
 
 export default function Navbar() {
   const { totalItems, setIsOpen } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
+  const saleActive = useSaleActive();
 
 
 
@@ -19,9 +21,11 @@ export default function Navbar() {
     { name: 'Hats & Accessories', slug: 'hats-accessories' }
   ];
 
+  
+
   return (
     <>
-      <nav className="fixed top-0 left-0 z-50 w-full transition-all duration-500 ease-in-out !bg-transparent hover:!bg-[#435e48] px-6 py-4 lg:py-6 grid grid-cols-3 items-center group/nav">
+     <nav className={`fixed ${saleActive ? 'top-8' : 'top-0'} left-0 z-50 w-full transition-all duration-500 ease-in-out !bg-transparent hover:!bg-[#435e48] px-6 py-4 lg:py-6 grid grid-cols-3 items-center group/nav`}>
         
         {/* LEFT: Logo (desktop) / hidden (mobile) */}
         <div className="flex items-center space-x-6">

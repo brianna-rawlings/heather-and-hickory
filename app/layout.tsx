@@ -5,6 +5,8 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import { CartProvider } from "@/context/CartContext";
 import EmailPopup from '@/components/EmailPopup';
+import SaleBanner from "@/components/SaleBanner";
+import SaleContent from "@/components/SaleContent";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://heatherandhickory.com'),
@@ -107,10 +109,11 @@ export default function RootLayout({
       </head>
       <body>
         <CartProvider>
+          <SaleBanner />
           <Navbar />
           <EmailPopup />
           <CartDrawer />
-          {children}
+          <SaleContent>{children}</SaleContent>
           <Footer />
         </CartProvider>
       </body>
