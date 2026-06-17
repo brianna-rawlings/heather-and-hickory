@@ -31,3 +31,9 @@ body {
     --font-bodoni: "Bodoni 72 Oldstyle", "Bodoni 72", "Bodoni Moda", serif;
   }
 }
+
+
+
+
+.font-display { font-family: var(--font-caslon), serif; }
+.font-ui { font-family: var(--font-jost), sans-serif; }

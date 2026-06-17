@@ -8,6 +8,13 @@ import EmailPopup from '@/components/EmailPopup';
 import SaleBanner from "@/components/SaleBanner";
 import SaleContent from "@/components/SaleContent";
 
+import { Libre_Caslon_Display, Jost } from 'next/font/google';
+
+const libreCaslon = Libre_Caslon_Display({ subsets: ['latin'], weight: '400', variable: '--font-caslon', display: 'swap' });
+const jost = Jost({ subsets: ['latin'], variable: '--font-jost', display: 'swap' });
+
+
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://heatherandhickory.com'),
   title: {
@@ -96,7 +103,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${libreCaslon.variable} ${jost.variable}`}>
       <head>
         <script
           type="application/ld+json"
