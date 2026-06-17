@@ -1,5 +1,5 @@
 'use client';
-import { useSaleActive } from '@/lib/sale';
+import { useSaleActive } from '@/components/lib/sale';
 
 export default function SaleContent({ children }: { children: React.ReactNode }) {
   const active = useSaleActive();

@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { ChevronDown, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useState } from 'react';
-import { useSaleActive } from '@/lib/sale';
+import { useSaleActive } from '@/components/lib/sale';
 
 export default function Navbar() {
   const { totalItems, setIsOpen } = useCart();
