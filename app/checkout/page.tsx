@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PaymentForm, CreditCard, ApplePay, GooglePay } from 'react-square-web-payments-sdk';
 import { useCart } from '@/context/CartContext';
@@ -33,6 +33,8 @@ export default function CheckoutPage() {
   const [discountCode, setDiscountCode] = useState('');
   const [appliedCode, setAppliedCode] = useState('');
   const [codeError, setCodeError] = useState('');
+  const [taxAmount, setTaxAmount] = useState(0);
+  const [taxStatus, setTaxStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [customer, setCustomer] = useState<CustomerInfo>({
     name: '',
     email: '',
@@ -82,14 +84,48 @@ export default function CheckoutPage() {
   ? 14
   : (discount?.freeShipping || qualifiesForFreeShipping ? 0 : 7);
 
-  const taxRate = customer.address.state.toUpperCase() === 'KS' ? 0.065 : 0;
-  const taxAmount = parseFloat(((totalPrice - discountAmount) * taxRate).toFixed(2));
-  const orderTotal = totalPrice - discountAmount + shippingCost + taxAmount;
+  const subtotalAfterDiscount = totalPrice - discountAmount;
+  const orderTotal = subtotalAfterDiscount + shippingCost + taxAmount;
+
+  // Fetch live, destination-based tax whenever the address or totals change.
+  useEffect(() => {
+    const zip = customer.address.zip;
+    const state = customer.address.state;
+    if (!zip || zip.length < 5 || !state) {
+      setTaxAmount(0);
+      setTaxStatus('idle');
+      return;
+    }
+    setTaxStatus('loading');
+    const controller = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/tax', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            amount: Math.round(subtotalAfterDiscount * 100),
+            shipping: Math.round(shippingCost * 100),
+            address: customer.address,
+          }),
+        });
+        const data = await res.json();
+        setTaxAmount((data.taxCents || 0) / 100);
+        setTaxStatus('ready');
+      } catch (err: any) {
+        if (err.name !== 'AbortError') { setTaxAmount(0); setTaxStatus('error'); }
+      }
+    }, 500);
+    return () => { clearTimeout(t); controller.abort(); };
+  }, [subtotalAfterDiscount, shippingCost, shippingMethod, appliedCode,
+      customer.address.zip, customer.address.state, customer.address.city, customer.address.line1]);
 
   const isFormValid = customer.name && customer.email && customer.address.line1 && customer.address.city && customer.address.state && customer.address.zip;
 
   const handlePayment = async (token: any) => {
     if (!isFormValid) { setErrorMessage('Please fill in all required fields.'); return; }
+    if (taxStatus === 'loading') { setErrorMessage('Calculating tax — one moment, then try again.'); return; }
     if (token.status !== 'OK' || !token.token) { setErrorMessage('Payment failed. Please try again.'); setStatus('error'); return; }
     setStatus('processing');
     setErrorMessage('');
@@ -310,7 +346,7 @@ export default function CheckoutPage() {
               )}
 
               <PaymentForm
-                key={`${orderTotal}-${shippingMethod}-${appliedCode}`}
+                key={`${orderTotal}-${shippingMethod}-${appliedCode}-${taxAmount}`}
                 applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID!}
                 locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!}
                 cardTokenizeResponseReceived={handlePayment}
@@ -393,9 +429,15 @@ export default function CheckoutPage() {
                 <span>Shipping {qualifiesForFreeShipping && shippingMethod === 'standard' && !discount?.freeShipping ? '(free over $50)' : ''}</span>
                 <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
               </div>
-              {taxAmount > 0 && (
+              {taxStatus === 'loading' && (
+                <div className="flex justify-between text-sm text-gray-400">
+                  <span>Sales Tax</span>
+                  <span>Calculating…</span>
+                </div>
+              )}
+              {taxStatus === 'ready' && taxAmount > 0 && (
                 <div className="flex justify-between text-sm text-gray-500">
-                  <span>Tax (KS 6.5%)</span>
+                  <span>Sales Tax</span>
                   <span>${taxAmount.toFixed(2)}</span>
                 </div>
               )}

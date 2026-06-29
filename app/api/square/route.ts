@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { calculateTax, recordTaxTransaction } from '../_lib/taxjar';
 
 // Simple in-memory rate limiter
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -133,8 +134,18 @@ export async function POST(req: NextRequest) {
       shippingAmount = 0;
     }
 
-    const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
-    const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
+    const tax = await calculateTax(subtotalAfterDiscount, shippingAmount, {
+      zip: customer.address.zip,
+      state: customer.address.state,
+      city: customer.address.city,
+      street: customer.address.line1,
+    });
+    const taxAmount = tax.amountToCollectCents;
+    // Derive the % so Square reproduces the exact tax amount (no rounding drift).
+    const taxBaseCents = subtotalAfterDiscount + (tax.freightTaxable ? shippingAmount : 0);
+    const taxPercentage = taxAmount > 0 && taxBaseCents > 0
+      ? (taxAmount / taxBaseCents * 100).toFixed(6)
+      : '0';
     const totalAmount = subtotalAfterDiscount + shippingAmount + taxAmount;
 
     if (totalAmount <= 0) {
@@ -165,13 +176,14 @@ export async function POST(req: NextRequest) {
             service_charges: [{
               name: shippingMethod === 'expedited' ? 'Expedited Shipping' : 'Standard Shipping',
               amount_money: { amount: shippingAmount, currency: 'USD' },
-              calculation_phase: 'TOTAL_PHASE',
+              calculation_phase: tax.freightTaxable ? 'SUBTOTAL_PHASE' : 'TOTAL_PHASE',
+              ...(tax.freightTaxable ? { taxable: true } : {}),
             }],
           } : {}),
           ...(taxAmount > 0 ? {
             taxes: [{
-              name: 'Kansas Sales Tax',
-              percentage: '6.5',
+              name: 'Sales Tax',
+              percentage: taxPercentage,
               scope: 'ORDER',
             }],
           } : {}),
@@ -239,8 +251,14 @@ export async function POST(req: NextRequest) {
       console.error('Square payment error:', paymentData);
       return NextResponse.json({ error: paymentData.errors?.[0]?.detail || 'Payment failed' }, { status: 400 });
     }
+    
 
     const orderId = squareOrderId?.slice(-8).toUpperCase() || 'HH' + Date.now().toString().slice(-6);
+
+    // Record the tax transaction in Stripe for reporting/filing (non-fatal).
+    if (tax.calculationId) {
+      await recordTaxTransaction(tax.calculationId, orderId);
+    }
 
     // Send confirmation email to customer
     await resend.emails.send({
