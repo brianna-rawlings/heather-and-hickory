@@ -24,7 +24,7 @@ export default function Home() {
       {/* HERO SECTION */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         <video autoPlay loop muted playsInline className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.8]">
-          <source src="/handh.mp4" type="video/mp4" />
+          <source src="/third.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 z-10 bg-black/10"></div>
         <div className="relative z-20 text-center flex flex-col items-center gap-8">
