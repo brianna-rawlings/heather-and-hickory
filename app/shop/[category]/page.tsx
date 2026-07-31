@@ -8,6 +8,7 @@ const categoryNames: Record<string, string> = {
   'polos-t-shirts': 'Polos & T-Shirts',
   'hoodies-zips': 'Hoodies & Zips',
   'hats-accessories': 'Hats & Accessories',
+  'shorts': 'Shorts',
 };
 
 const categoryDescriptions: Record<string, string> = {
