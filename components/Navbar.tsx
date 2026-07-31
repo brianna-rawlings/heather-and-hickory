@@ -17,6 +17,7 @@ export default function Navbar() {
   const shopCategories = [
     { name: 'Shop All', slug: 'shop-all' },
     { name: 'Polos & T-Shirts', slug: 'polos-t-shirts' },
+    { name: 'Shorts', slug: 'shorts' },
     { name: 'Hoodies & Zips', slug: 'hoodies-zips' },
     { name: 'Hats & Accessories', slug: 'hats-accessories' }
   ];
