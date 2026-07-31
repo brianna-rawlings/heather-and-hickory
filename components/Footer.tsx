@@ -44,10 +44,12 @@ export default function Footer() {
             <div className="flex flex-col space-y-2">
               <Link href="/shop/shop-all" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Shop All</Link>
               <Link href="/shop/polos-t-shirts" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Polos & T-Shirts</Link>
+              <Link href="/shop/shorts" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Shorts</Link> 
               <Link href="/shop/hoodies-zips" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Hoodies & Zips</Link>
               <Link href="/shop/hats-accessories" className="text-xs text-white/70 hover:text-white transition-colors tracking-[0.15em] uppercase">Hats & Accessories</Link>
             </div>
           </div>
+
 
           {/* Info Links */}
           <div>
