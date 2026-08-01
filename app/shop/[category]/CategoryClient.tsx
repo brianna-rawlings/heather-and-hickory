@@ -6,6 +6,7 @@ import { useProducts } from '@/hooks/useProducts';
 const categoryNames: Record<string, string> = {
   'shop-all': 'Shop All',
   'polos-t-shirts': 'Polos & T-Shirts',
+  'shorts': 'Shorts',
   'hoodies-zips': 'Hoodies & Zips',
   'hats-accessories': 'Hats & Accessories',
 };
