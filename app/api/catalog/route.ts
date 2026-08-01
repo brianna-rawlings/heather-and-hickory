@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 
-export async function GET() {
-  try {
-    // Fetch catalog
-    const response = await fetch(`${process.env.SQUARE_API_URL}/v2/catalog/list?types=ITEM,CATEGORY,IMAGE`, {
+async function fetchAllCatalogObjects() {
+  const objects: any[] = [];
+  let cursor: string | undefined = undefined;
+
+  do {
+    const url = new URL(`${process.env.SQUARE_API_URL}/v2/catalog/list`);
+    url.searchParams.set('types', 'ITEM,CATEGORY,IMAGE');
+    if (cursor) url.searchParams.set('cursor', cursor);
+
+    const response = await fetch(url.toString(), {
       headers: {
         'Square-Version': '2024-01-18',
         'Authorization': `Bearer ${process.env.SQUARE_ACCESS_TOKEN}`,
@@ -15,11 +21,58 @@ export async function GET() {
     if (!response.ok) {
       const error = await response.json();
       console.error('Square catalog error:', error);
-      return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
+      throw new Error('Failed to fetch products');
     }
 
     const data = await response.json();
-    const objects = data.objects || [];
+    objects.push(...(data.objects || []));
+    cursor = data.cursor;
+  } while (cursor);
+
+  return objects;
+}
+
+async function fetchAllInventoryCounts(variationIds: string[]) {
+  const inventoryMap: Record<string, number> = {};
+  if (variationIds.length === 0) return inventoryMap;
+
+  let cursor: string | undefined = undefined;
+
+  try {
+    do {
+      const inventoryRes: Response = await fetch(`${process.env.SQUARE_API_URL}/v2/inventory/counts/batch-retrieve`, {
+        method: 'POST',
+        headers: {
+          'Square-Version': '2024-01-18',
+          'Authorization': `Bearer ${process.env.SQUARE_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          catalog_object_ids: variationIds,
+          states: ['IN_STOCK'],
+          ...(cursor ? { cursor } : {}),
+        }),
+        next: { revalidate: 60 },
+      });
+
+      if (!inventoryRes.ok) break;
+
+      const inventoryData: any = await inventoryRes.json();
+      (inventoryData.counts || []).forEach((count: any) => {
+        inventoryMap[count.catalog_object_id] = parseInt(count.quantity || '0', 10);
+      });
+      cursor = inventoryData.cursor;
+    } while (cursor);
+  } catch (err) {
+    console.error('Inventory fetch error:', err);
+  }
+
+  return inventoryMap;
+}
+
+export async function GET() {
+  try {
+    const objects = await fetchAllCatalogObjects();
 
     // Build category map
     const categoryMap: Record<string, string> = {};
@@ -47,34 +100,8 @@ export async function GET() {
         });
       });
 
-    // Fetch inventory counts from Square
-    const inventoryMap: Record<string, number> = {};
-    if (allVariationIds.length > 0) {
-      try {
-        const inventoryRes = await fetch(`${process.env.SQUARE_API_URL}/v2/inventory/counts/batch-retrieve`, {
-          method: 'POST',
-          headers: {
-            'Square-Version': '2024-01-18',
-            'Authorization': `Bearer ${process.env.SQUARE_ACCESS_TOKEN}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            catalog_object_ids: allVariationIds,
-            states: ['IN_STOCK'],
-          }),
-          next: { revalidate: 60 },
-        });
-
-        if (inventoryRes.ok) {
-          const inventoryData = await inventoryRes.json();
-          (inventoryData.counts || []).forEach((count: any) => {
-            inventoryMap[count.catalog_object_id] = parseInt(count.quantity || '0', 10);
-          });
-        }
-      } catch (err) {
-        console.error('Inventory fetch error:', err);
-      }
-    }
+    // Fetch inventory counts from Square (paginated)
+    const inventoryMap = await fetchAllInventoryCounts(allVariationIds);
 
     // Transform items
     const products = objects
@@ -116,17 +143,17 @@ export async function GET() {
         };
       });
 
-    // Sort: pullover → polos → hats → t-shirts
+    // Sort: pullover → polos → shorts → hats → t-shirts
     products.sort((a: any, b: any) => {
       const getTypeOrder = (name: string) => {
         const n = name.toLowerCase();
         if (n.includes('pullover') || n.includes('quarter zip') || n.includes('zip') || n.includes('vest')) return 1;
-    if (n.includes('polo')) return 2;
-    if (n.includes('short')) return 3; // pick where it should slot in
-    if (n.includes('hat')) return 4;
-    if (n.includes('tee') || n.includes('t-shirt') || n.includes('shirt')) return 5;
-    if (n.includes('marker') || n.includes('chip') || n.includes('sticker') || n.includes('tees')) return 6;
-    return 7;
+        if (n.includes('polo')) return 2;
+        if (n.includes('short')) return 3; // pick where it should slot in
+        if (n.includes('hat')) return 4;
+        if (n.includes('tee') || n.includes('t-shirt') || n.includes('shirt')) return 5;
+        if (n.includes('marker') || n.includes('chip') || n.includes('sticker') || n.includes('tees')) return 6;
+        return 7;
       };
       return getTypeOrder(a.name) - getTypeOrder(b.name);
     });
