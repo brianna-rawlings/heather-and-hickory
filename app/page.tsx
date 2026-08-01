@@ -17,7 +17,15 @@ export default function Home() {
     .filter(Boolean) as typeof products;
 
   const featuredIds = new Set(featuredProducts.map(p => p.id));
-  const collectionProducts = products.filter(p => !featuredIds.has(p.id));
+  const collectionProducts = products
+    .filter(p => !featuredIds.has(p.id))
+    .sort((a, b) => {
+      const aIsShorts = a.category.toLowerCase() === 'shorts';
+      const bIsShorts = b.category.toLowerCase() === 'shorts';
+      if (aIsShorts && !bIsShorts) return -1;
+      if (!aIsShorts && bIsShorts) return 1;
+      return 0;
+    });
 
   return (
     <main className="min-h-screen bg-white">
