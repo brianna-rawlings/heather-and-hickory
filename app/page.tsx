@@ -1,16 +1,23 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import ProductCarousel from '@/components/ProductCarousel';
 import ProductCard from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
-import InstagramFeed from "@/components/InstagramFeed"; // 👈 1. ADD THIS IMPORT TO FIX THE RED SQUIGGLY
+import InstagramFeed from "@/components/InstagramFeed";
 
-// Pieces to feature up top, in display order. Match by name (or partial name) —
-// edit this whenever your newest drop changes.
 const FEATURED = ['The 1776', 'Grey Heather', 'Fescue'];
 
 export default function Home() {
   const { products, loading, error } = useProducts();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const featuredProducts = FEATURED
     .map(key => products.find(p => p.name.toLowerCase().includes(key.toLowerCase())))
@@ -31,10 +38,16 @@ export default function Home() {
     <main className="min-h-screen bg-white">
       {/* HERO SECTION */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-      <video autoPlay loop muted playsInline className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.8]">
-        <source src="/darkmobile.mov" media="(max-width: 767px)" type="video/mp4" />
-        <source src="/dark.mov" type="video/mp4" />
-      </video>
+        <video
+          key={isMobile ? 'mobile' : 'desktop'}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.8]"
+        >
+          <source src={isMobile ? '/darkmobile.mov' : '/dark.mov'} type="video/mp4" />
+        </video>
         <div className="absolute inset-0 z-10 bg-black/10"></div>
         <div className="relative z-20 text-center flex flex-col items-center gap-8">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -52,21 +65,19 @@ export default function Home() {
       <section className="bg-[#f9f7f4] py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_3fr] gap-12 items-start">
-            {/* Left: heading */}
             <div className="lg:pt-6">
               <h2 className="text-4xl font-serif italic text-[#4c2a17]">Summer Essentials</h2>
               <div className="h-0.5 w-16 bg-[#435e48] mt-4"></div>
               <div className="lg:pt-6">
-              <p
-                className="mt-3 max-w-xs text-bold leading-relaxed text-[#4c2a17]"
-                style={{ fontFamily: 'var(--font-caslon), serif' }}
-              >
-              Our 1776 Stripe Polo honors America's 250th, joined by two warm-weather staples: the Grey Heather Stripe Polo and the Fescue Green Vest.
-              </p>
-            </div>  
+                <p
+                  className="mt-3 max-w-xs text-bold leading-relaxed text-[#4c2a17]"
+                  style={{ fontFamily: 'var(--font-caslon), serif' }}
+                >
+                  Our 1776 Stripe Polo honors America's 250th, joined by two warm-weather staples: the Grey Heather Stripe Polo and the Fescue Green Vest.
+                </p>
+              </div>
             </div>
 
-            {/* Right: three pieces filling the rest */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-12">
               {loading &&
                 [1, 2, 3].map(i => (
@@ -118,8 +129,6 @@ export default function Home() {
           </div>
         )}
       </section>
-
-      
     </main>
   );
 }
