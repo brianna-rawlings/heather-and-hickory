@@ -31,9 +31,10 @@ export default function Home() {
     <main className="min-h-screen bg-white">
       {/* HERO SECTION */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-        <video autoPlay loop muted playsInline className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.8]">
-          <source src="/dark.mov" type="video/mp4" />
-        </video>
+      <video autoPlay loop muted playsInline className="absolute inset-0 z-0 w-full h-full object-cover brightness-[0.8]">
+        <source src="/darkmobile.mov" media="(max-width: 767px)" type="video/mp4" />
+        <source src="/dark.mov" type="video/mp4" />
+      </video>
         <div className="absolute inset-0 z-10 bg-black/10"></div>
         <div className="relative z-20 text-center flex flex-col items-center gap-8">
           <div className="flex flex-col sm:flex-row gap-4">
