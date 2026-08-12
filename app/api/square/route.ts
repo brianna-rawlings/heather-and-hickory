@@ -26,6 +26,7 @@ const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff
   'HICKORY10': { freeShipping: false, percentOff: 10 },
   'KASITZ20': { freeShipping: false, percentOff: 20 },
   'HERITAGE15': { freeShipping: false, percentOff: 15 },
+  'CLEANSLATE15': { freeShipping: false, percentOff: 15 }, 
   'RYANLOPEZ10': { freeShipping: false, percentOff: 10},
   'FATHERSDAY20': { freeShipping: false, percentOff: 20, startsAt: '2026-06-17T04:00:00Z', expiresAt: '2026-06-22T04:00:00Z' },
 };
