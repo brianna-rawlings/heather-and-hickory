@@ -1,5 +1,6 @@
 'use client';
-import { use } from 'react';
+import { use, useMemo, useState } from 'react';
+import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
 
@@ -18,9 +19,19 @@ const categoryDescriptions: Record<string, string> = {
   'hats-accessories': 'Golf hats and accessories from Heather & Hickory. Rooted in tradition, made to last.',
 };
 
+type SortOption = 'featured' | 'price-asc' | 'price-desc' | 'name-asc';
+
+const sortLabels: Record<SortOption, string> = {
+  featured: 'Featured',
+  'price-asc': 'Price: Low to High',
+  'price-desc': 'Price: High to Low',
+  'name-asc': 'Name: A–Z',
+};
+
 export default function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const { category } = use(params);
   const { products, loading, error } = useProducts();
+  const [sort, setSort] = useState<SortOption>('featured');
 
   const filteredProducts = products.filter((p) => {
     if (category === 'shop-all') return true;
@@ -28,25 +39,76 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
     return categorySlug === category;
   });
 
+  const sortedProducts = useMemo(() => {
+    const withPrice = filteredProducts.map(p => ({
+      ...p,
+      _priceValue: parseFloat(p.price.replace(/[^0-9.]/g, '')) || 0,
+    }));
+    switch (sort) {
+      case 'price-asc':
+        return [...withPrice].sort((a, b) => a._priceValue - b._priceValue);
+      case 'price-desc':
+        return [...withPrice].sort((a, b) => b._priceValue - a._priceValue);
+      case 'name-asc':
+        return [...withPrice].sort((a, b) => a.name.localeCompare(b.name));
+      default:
+        return withPrice;
+    }
+  }, [filteredProducts, sort]);
+
+  const title = categoryNames[category] || category.replace(/-/g, ' ');
+  const description = categoryDescriptions[category];
+
   return (
-    <main className="min-h-screen bg-[#f9f7f4] pt-50 pb-24">
+    <main className="min-h-screen bg-white pt-50">
       <div className="max-w-7xl mx-auto px-6">
-        <header className="mb-16 text-center">
-          <h1 className="text-5xl font-serif italic text-[#4c2a17] mb-4">
-            {categoryNames[category] || category.replace(/-/g, ' ')}
-          </h1>
-          <div className="h-0.5 w-24 bg-[#435e48] mx-auto"></div>
-        </header>
+
+        {/* Breadcrumb */}
+        <nav className="mb-8 text-[10px] uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
+          <Link href="/" className="hover:text-[#4c2a17] transition-colors">Home</Link>
+          <span>/</span>
+          <span className="text-[#4c2a17]">{title}</span>
+        </nav>
+
+        {/* Header row */}
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+          <div className="max-w-xl">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-2">Golf Apparel & Accessories</p>
+            <h1 className="text-4xl md:text-5xl font-serif italic text-[#4c2a17] mb-3">{title}</h1>
+            {description && (
+              <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+            )}
+          </div>
+
+          {!loading && !error && sortedProducts.length > 0 && (
+            <div className="flex items-end gap-6 flex-shrink-0">
+              <p className="text-[10px] uppercase tracking-[0.15em] text-gray-400 whitespace-nowrap">
+                {sortedProducts.length} {sortedProducts.length === 1 ? 'Item' : 'Items'}
+              </p>
+              <select
+                value={sort}
+                onChange={e => setSort(e.target.value as SortOption)}
+                className="appearance-none bg-transparent text-[10px] uppercase tracking-[0.15em] text-[#435e48] border-b border-[#435e48] pb-0.5 cursor-pointer focus:outline-none whitespace-nowrap"
+              >
+                {(Object.keys(sortLabels) as SortOption[]).map(key => (
+                  <option key={key} value={key}>Sort: {sortLabels[key]}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <div className="h-px bg-gray-100 mb-14"></div>
 
         {loading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-16 mb-24">
             {[1, 2, 3].map(i => (
               <div key={i} className="animate-pulse">
                 <div className="aspect-[3/4] bg-gray-100" />
                 <div className="mt-4 space-y-2">
-                  <div className="h-3 bg-gray-100 w-1/2 mx-auto" />
-                  <div className="h-4 bg-gray-100 w-3/4 mx-auto" />
-                  <div className="h-3 bg-gray-100 w-1/4 mx-auto" />
+                  <div className="h-3 bg-gray-100 w-1/3" />
+                  <div className="h-4 bg-gray-100 w-3/4" />
+                  <div className="h-3 bg-gray-100 w-1/4" />
                 </div>
               </div>
             ))}
@@ -59,15 +121,15 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
           </p>
         )}
 
-        {!loading && !error && filteredProducts.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-10 gap-y-16 mb-24">
-            {filteredProducts.map((product) => (
+        {!loading && !error && sortedProducts.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-16 mb-24">
+            {sortedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
 
-        {!loading && !error && filteredProducts.length === 0 && (
+        {!loading && !error && sortedProducts.length === 0 && (
           <p className="text-center text-gray-500 py-20">No products found in this category.</p>
         )}
       </div>
