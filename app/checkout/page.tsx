@@ -1,8 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { PaymentForm, CreditCard, ApplePay, GooglePay } from 'react-square-web-payments-sdk';
 import { useCart } from '@/context/CartContext';
+import { getSale } from '@/lib/sale';
 
 interface CustomerInfo {
   name: string;
@@ -16,26 +17,29 @@ interface CustomerInfo {
   };
 }
 
-const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number; label: string; startsAt?: string; expiresAt?: string }> = {
+const DISCOUNT_CODES: Record<string, { freeShipping: boolean; percentOff: number; label: string }> = {
+
   'HICKORY10': { freeShipping: false, percentOff: 10, label: '10% off applied' },
+
   'KASITZ20': { freeShipping: false, percentOff: 20, label: '20% off applied' },
+
   'HERITAGE15': { freeShipping: false, percentOff: 15, label: '15% off applied' },
-  'CLEANSLATE15': { freeShipping: false, percentOff: 15, label: '15% off applied' }, 
-  'RYANLOPEZ10': { freeShipping: false, percentOff: 10, label: '10% off applied' },
-  'FATHERSDAY20': { freeShipping: false, percentOff: 20, label: '20% off applied', startsAt: '2026-06-17T04:00:00Z', expiresAt: '2026-06-22T04:00:00Z' },
+
+  'CLEANSLATE15': { freeShipping: false, percentOff: 15, label: '15% off applied' },
+
+  'RYANLOPEZ10': { freeShipping: false, percentOff: 10, label: '10% off applied'}, 
+
 };
 
 export default function CheckoutPage() {
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, clearCart } = useCart();
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [orderId, setOrderId] = useState('');
-  const [shippingMethod, setShippingMethod] = useState<'standard' | 'expedited' | 'pickup'>('standard');
+  const [shippingMethod, setShippingMethod] = useState<'standard' | 'expedited'>('standard');
   const [discountCode, setDiscountCode] = useState('');
   const [appliedCode, setAppliedCode] = useState('');
   const [codeError, setCodeError] = useState('');
-  const [taxAmount, setTaxAmount] = useState(0);
-  const [taxStatus, setTaxStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [customer, setCustomer] = useState<CustomerInfo>({
     name: '',
     email: '',
@@ -51,82 +55,58 @@ export default function CheckoutPage() {
     }
   };
 
+  const getItemPricing = (item: { name: string; price: string }) => {
+    const original = parseFloat(item.price.replace(/[^0-9.]/g, ''));
+    const sale = getSale(item.name);
+    const effective = sale ? original * (1 - sale.percentOff / 100) : original;
+    return { original, effective, sale };
+  };
+
+  // Split the bag into what a discount code CAN touch (full-price) and what it can't (sale items).
+  let saleSubtotal = 0;
+  let nonSaleSubtotal = 0;
+  items.forEach(item => {
+    const { effective, sale } = getItemPricing(item);
+    if (sale) saleSubtotal += effective * item.quantity;
+    else nonSaleSubtotal += effective * item.quantity;
+  });
+  const effectiveSubtotal = saleSubtotal + nonSaleSubtotal;
+  const hasSaleItem = saleSubtotal > 0;
+  const allItemsOnSale = items.length > 0 && nonSaleSubtotal === 0;
+
   const applyCode = () => {
+    if (allItemsOnSale) {
+      setCodeError("Your bag only contains sale items — discount codes don't apply.");
+      return;
+    }
     const code = discountCode.toUpperCase().trim();
-    const found = DISCOUNT_CODES[code];
-    if (!found) {
+    if (DISCOUNT_CODES[code]) {
+      setAppliedCode(code);
+      setCodeError('');
+    } else {
       setCodeError('Invalid discount code');
       setAppliedCode('');
-      return;
     }
-    const now = Date.now();
-    if (found.startsAt && now < new Date(found.startsAt).getTime()) {
-      setCodeError('This code is not active yet');
-      setAppliedCode('');
-      return;
-    }
-    if (found.expiresAt && now > new Date(found.expiresAt).getTime()) {
-      setCodeError('This code has expired');
-      setAppliedCode('');
-      return;
-    }
-    setAppliedCode(code);
-    setCodeError('');
   };
 
   const discount = appliedCode ? DISCOUNT_CODES[appliedCode] : null;
-  const discountAmount = discount?.percentOff ? totalPrice * discount.percentOff / 100 : 0;
-  const qualifiesForFreeShipping = (totalPrice - discountAmount) >= 50;
+  // Percent-off is calculated against full-price items only — sale items are untouched.
+  const discountAmount = discount?.percentOff ? nonSaleSubtotal * discount.percentOff / 100 : 0;
+  const qualifiesForFreeShipping = (effectiveSubtotal - discountAmount) >= 50;
 
   // Expedited is ALWAYS $14 — never free
-  const shippingCost = shippingMethod === 'pickup'
-  ? 0
-  : shippingMethod === 'expedited'
-  ? 14
-  : (discount?.freeShipping || qualifiesForFreeShipping ? 0 : 7);
+  const shippingCost = shippingMethod === 'expedited'
+    ? 14
+    : (discount?.freeShipping || qualifiesForFreeShipping ? 0 : 7);
 
-  const subtotalAfterDiscount = totalPrice - discountAmount;
-  const orderTotal = subtotalAfterDiscount + shippingCost + taxAmount;
-
-  // Fetch live, destination-based tax whenever the address or totals change.
-  useEffect(() => {
-    const zip = customer.address.zip;
-    const state = customer.address.state;
-    if (!zip || zip.length < 5 || !state) {
-      setTaxAmount(0);
-      setTaxStatus('idle');
-      return;
-    }
-    setTaxStatus('loading');
-    const controller = new AbortController();
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch('/api/tax', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal,
-          body: JSON.stringify({
-            amount: Math.round(subtotalAfterDiscount * 100),
-            shipping: Math.round(shippingCost * 100),
-            address: customer.address,
-          }),
-        });
-        const data = await res.json();
-        setTaxAmount((data.taxCents || 0) / 100);
-        setTaxStatus('ready');
-      } catch (err: any) {
-        if (err.name !== 'AbortError') { setTaxAmount(0); setTaxStatus('error'); }
-      }
-    }, 500);
-    return () => { clearTimeout(t); controller.abort(); };
-  }, [subtotalAfterDiscount, shippingCost, shippingMethod, appliedCode,
-      customer.address.zip, customer.address.state, customer.address.city, customer.address.line1]);
+  const taxRate = customer.address.state.toUpperCase() === 'KS' ? 0.065 : 0;
+  const taxAmount = parseFloat(((effectiveSubtotal - discountAmount) * taxRate).toFixed(2));
+  const orderTotal = effectiveSubtotal - discountAmount + shippingCost + taxAmount;
 
   const isFormValid = customer.name && customer.email && customer.address.line1 && customer.address.city && customer.address.state && customer.address.zip;
 
   const handlePayment = async (token: any) => {
     if (!isFormValid) { setErrorMessage('Please fill in all required fields.'); return; }
-    if (taxStatus === 'loading') { setErrorMessage('Calculating tax — one moment, then try again.'); return; }
     if (token.status !== 'OK' || !token.token) { setErrorMessage('Payment failed. Please try again.'); setStatus('error'); return; }
     setStatus('processing');
     setErrorMessage('');
@@ -294,39 +274,42 @@ export default function CheckoutPage() {
                   </div>
                   <span className="text-sm font-semibold text-[#435e48]">$14.00</span>
                 </button>
-                <button
-                  onClick={() => setShippingMethod('pickup')}
-                  className={`w-full flex justify-between items-center px-4 py-4 border transition-all duration-200 ${shippingMethod === 'pickup' ? 'border-[#4c2a17] bg-[#4c2a17]/5' : 'border-gray-200 hover:border-gray-300'}`}
-                >
-                  <div className="text-left">
-                    <p className="text-sm text-[#4c2a17] font-medium">Taylor University Campus Pickup</p>
-                    <p className="text-xs text-gray-400">We'll reach out to arrange pickup on campus</p>
-                  </div>
-                  <span className="text-sm font-semibold text-[#435e48]">Free</span>
-                </button>
               </div>
             </div>
 
             {/* Discount Code */}
             <div>
               <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Discount Code</h2>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={discountCode}
-                  onChange={e => setDiscountCode(e.target.value.toUpperCase())}
-                  className="flex-1 border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
-                  placeholder="Enter code"
-                />
-                <button onClick={applyCode} className="bg-[#4c2a17] text-white px-6 py-3 text-xs uppercase tracking-[0.2em] hover:bg-[#435e48] transition-colors">
-                  Apply
-                </button>
-              </div>
-              {appliedCode && (
-                <p className="mt-2 text-xs text-[#435e48]">✓ {DISCOUNT_CODES[appliedCode].label}</p>
-              )}
-              {codeError && (
-                <p className="mt-2 text-xs text-red-400">{codeError}</p>
+              {allItemsOnSale ? (
+                <p className="text-xs text-gray-400">
+                  Your bag only contains sale items — discount codes don't apply.
+                </p>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={discountCode}
+                      onChange={e => setDiscountCode(e.target.value.toUpperCase())}
+                      className="flex-1 border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-[#4c2a17] transition-colors"
+                      placeholder="Enter code"
+                    />
+                    <button onClick={applyCode} className="bg-[#4c2a17] text-white px-6 py-3 text-xs uppercase tracking-[0.2em] hover:bg-[#435e48] transition-colors">
+                      Apply
+                    </button>
+                  </div>
+                  {hasSaleItem && (
+                    <p className="mt-2 text-[10px] text-gray-400">
+                      Codes apply to full-price items only — sale items keep their sale price.
+                    </p>
+                  )}
+                  {appliedCode && (
+                    <p className="mt-2 text-xs text-[#435e48]">✓ {DISCOUNT_CODES[appliedCode].label}</p>
+                  )}
+                  {codeError && (
+                    <p className="mt-2 text-xs text-red-400">{codeError}</p>
+                  )}
+                </>
               )}
             </div>
 
@@ -347,7 +330,7 @@ export default function CheckoutPage() {
               )}
 
               <PaymentForm
-                key={`${orderTotal}-${shippingMethod}-${appliedCode}-${taxAmount}`}
+                key={`${orderTotal}-${shippingMethod}-${appliedCode}`}
                 applicationId={process.env.NEXT_PUBLIC_SQUARE_APP_ID!}
                 locationId={process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID!}
                 cardTokenizeResponseReceived={handlePayment}
@@ -356,8 +339,8 @@ export default function CheckoutPage() {
                   currencyCode: 'USD',
                   total: { amount: orderTotal.toFixed(2), label: 'Heather & Hickory' },
                   lineItems: [
-                    { label: 'Subtotal', amount: (totalPrice - discountAmount).toFixed(2) },
-                    { label: shippingMethod === 'pickup' ? 'Campus Pickup' : shippingMethod === 'expedited' ? 'Expedited Shipping' : 'Standard Shipping', amount: shippingCost.toFixed(2) },
+                    { label: 'Subtotal', amount: (effectiveSubtotal - discountAmount).toFixed(2) },
+                    { label: shippingMethod === 'expedited' ? 'Expedited Shipping' : 'Standard Shipping', amount: shippingCost.toFixed(2) },
                     ...(taxAmount > 0 ? [{ label: 'Tax', amount: taxAmount.toFixed(2) }] : []),
                   ],
                 })}
@@ -397,28 +380,38 @@ export default function CheckoutPage() {
           <div>
             <h2 className="text-xs uppercase tracking-[0.3em] text-[#4c2a17] font-bold mb-6">Order Summary</h2>
             <div className="space-y-4">
-              {items.map(item => (
-                <div key={`${item.id}-${item.variationId}`} className="flex gap-4 py-4 border-b border-gray-100">
-                  <div className="w-20 h-24 bg-gray-100 overflow-hidden flex-shrink-0">
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400">{item.category}</p>
-                    <h3 className="text-sm font-serif text-[#4c2a17] mt-1">{item.name}</h3>
-                    <div className="flex justify-between items-center mt-2">
-                      <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
-                      <p className="text-sm font-semibold text-[#435e48]">
-                        ${(parseFloat(item.price.replace('$', '')) * item.quantity).toFixed(2)}
-                      </p>
+              {items.map(item => {
+                const { original, effective, sale } = getItemPricing(item);
+                return (
+                  <div key={`${item.id}-${item.variationId}`} className="flex gap-4 py-4 border-b border-gray-100">
+                    <div className="w-20 h-24 bg-gray-100 overflow-hidden flex-shrink-0">
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-gray-400">{item.category}</p>
+                      <h3 className="text-sm font-serif text-[#4c2a17] mt-1">{item.name}</h3>
+                      <div className="flex justify-between items-center mt-2">
+                        <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
+                        <div className="text-right">
+                          {sale && (
+                            <p className="text-xs text-gray-400 line-through">
+                              ${(original * item.quantity).toFixed(2)}
+                            </p>
+                          )}
+                          <p className="text-sm font-semibold text-[#435e48]">
+                            ${(effective * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="mt-6 space-y-2">
               <div className="flex justify-between text-sm text-gray-500">
                 <span>Subtotal</span>
-                <span>${totalPrice.toFixed(2)}</span>
+                <span>${effectiveSubtotal.toFixed(2)}</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-sm text-[#435e48]">
@@ -430,15 +423,9 @@ export default function CheckoutPage() {
                 <span>Shipping {qualifiesForFreeShipping && shippingMethod === 'standard' && !discount?.freeShipping ? '(free over $50)' : ''}</span>
                 <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
               </div>
-              {taxStatus === 'loading' && (
-                <div className="flex justify-between text-sm text-gray-400">
-                  <span>Sales Tax</span>
-                  <span>Calculating…</span>
-                </div>
-              )}
-              {taxStatus === 'ready' && taxAmount > 0 && (
+              {taxAmount > 0 && (
                 <div className="flex justify-between text-sm text-gray-500">
-                  <span>Sales Tax</span>
+                  <span>Tax (KS 6.5%)</span>
                   <span>${taxAmount.toFixed(2)}</span>
                 </div>
               )}

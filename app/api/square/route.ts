@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { calculateTax, recordTaxTransaction } from '../_lib/taxjar';
+import { getSale, applyPercentOff } from '@/lib/sale';
 
 // Simple in-memory rate limiter
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -23,12 +23,19 @@ const SHIPPING_STANDARD = 700;
 const SHIPPING_EXPEDITED = 1400;
 
 const DISCOUNT_CODES_BACKEND: Record<string, { freeShipping: boolean; percentOff: number; startsAt?: string; expiresAt?: string }> = {
+
   'HICKORY10': { freeShipping: false, percentOff: 10 },
+
   'KASITZ20': { freeShipping: false, percentOff: 20 },
+
   'HERITAGE15': { freeShipping: false, percentOff: 15 },
+
   'CLEANSLATE15': { freeShipping: false, percentOff: 15 }, 
+
   'RYANLOPEZ10': { freeShipping: false, percentOff: 10},
+
   'FATHERSDAY20': { freeShipping: false, percentOff: 20, startsAt: '2026-06-17T04:00:00Z', expiresAt: '2026-06-22T04:00:00Z' },
+
 };
 
 export async function POST(req: NextRequest) {
@@ -63,6 +70,7 @@ export async function POST(req: NextRequest) {
 
     const priceMap: Record<string, number> = {};
     const nameMap: Record<string, string> = {};
+    const baseNameMap: Record<string, string> = {};
     catalogObjects.forEach((obj: any) => {
       if (obj.type === 'ITEM') {
         (obj.item_data?.variations || []).forEach((v: any) => {
@@ -70,12 +78,15 @@ export async function POST(req: NextRequest) {
           if (amount) {
             priceMap[v.id] = amount;
             nameMap[v.id] = `${obj.item_data.name} (${v.item_variation_data.name})`;
+            baseNameMap[v.id] = obj.item_data.name;
           }
         });
       }
     });
 
     let subtotal = 0;
+    // Only full-price items count toward what a discount code can be applied against.
+    let nonSaleSubtotal = 0;
     const lineItems: any[] = [];
     const orderItems: { name: string; quantity: number; price: string }[] = [];
 
@@ -86,15 +97,26 @@ export async function POST(req: NextRequest) {
       }
 
       let unitPrice: number | undefined;
+      let baseName: string | undefined;
+
       if (variationId && priceMap[variationId]) {
         unitPrice = priceMap[variationId];
+        baseName = baseNameMap[variationId];
       } else {
         const product = catalogObjects.find((obj: any) => obj.id === productId);
         unitPrice = product?.item_data?.variations?.[0]?.item_variation_data?.price_money?.amount;
+        baseName = product?.item_data?.name;
       }
 
       if (!unitPrice) {
         return NextResponse.json({ error: `Could not verify price for item ${productId}` }, { status: 400 });
+      }
+
+      const itemSale = baseName ? getSale(baseName) : undefined;
+      if (itemSale) {
+        unitPrice = applyPercentOff(unitPrice, itemSale.percentOff);
+      } else {
+        nonSaleSubtotal += unitPrice * quantity;
       }
 
       subtotal += unitPrice * quantity;
@@ -115,38 +137,17 @@ export async function POST(req: NextRequest) {
     }
 
     const discount = DISCOUNT_CODES_BACKEND[discountCode?.toUpperCase()];
-
-    // Reject codes that are outside their active window
-    if (discount && (discount.startsAt || discount.expiresAt)) {
-      const now = Date.now();
-      if (discount.startsAt && now < new Date(discount.startsAt).getTime()) {
-        return NextResponse.json({ error: 'This discount code is not active yet.' }, { status: 400 });
-      }
-      if (discount.expiresAt && now > new Date(discount.expiresAt).getTime()) {
-        return NextResponse.json({ error: 'This discount code has expired.' }, { status: 400 });
-      }
-    }
-
-    const discountAmount = discount?.percentOff ? Math.round(subtotal * discount.percentOff / 100) : 0;
+    // Percent-off calculated against non-sale subtotal only — sale items never get an extra discount.
+    const discountAmount = discount?.percentOff ? Math.round(nonSaleSubtotal * discount.percentOff / 100) : 0;
     const subtotalAfterDiscount = subtotal - discountAmount;
 
-    let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : shippingMethod === 'pickup' ? 0 : SHIPPING_STANDARD;
-    if (shippingMethod === 'standard' && (discount?.freeShipping || subtotalAfterDiscount >= 5000)) {
+    let shippingAmount = shippingMethod === 'expedited' ? SHIPPING_EXPEDITED : SHIPPING_STANDARD;
+    if (shippingMethod !== 'expedited' && (discount?.freeShipping || subtotalAfterDiscount >= 5000)) {
       shippingAmount = 0;
     }
 
-    const tax = await calculateTax(subtotalAfterDiscount, shippingAmount, {
-      zip: customer.address.zip,
-      state: customer.address.state,
-      city: customer.address.city,
-      street: customer.address.line1,
-    });
-    const taxAmount = tax.amountToCollectCents;
-    // Derive the % so Square reproduces the exact tax amount (no rounding drift).
-    const taxBaseCents = subtotalAfterDiscount + (tax.freightTaxable ? shippingAmount : 0);
-    const taxPercentage = taxAmount > 0 && taxBaseCents > 0
-      ? (taxAmount / taxBaseCents * 100).toFixed(6)
-      : '0';
+    const taxRate = customer.address.state?.toUpperCase() === 'KS' ? 0.065 : 0;
+    const taxAmount = Math.round(subtotalAfterDiscount * taxRate);
     const totalAmount = subtotalAfterDiscount + shippingAmount + taxAmount;
 
     if (totalAmount <= 0) {
@@ -177,14 +178,13 @@ export async function POST(req: NextRequest) {
             service_charges: [{
               name: shippingMethod === 'expedited' ? 'Expedited Shipping' : 'Standard Shipping',
               amount_money: { amount: shippingAmount, currency: 'USD' },
-              calculation_phase: tax.freightTaxable ? 'SUBTOTAL_PHASE' : 'TOTAL_PHASE',
-              ...(tax.freightTaxable ? { taxable: true } : {}),
+              calculation_phase: 'TOTAL_PHASE',
             }],
           } : {}),
           ...(taxAmount > 0 ? {
             taxes: [{
-              name: 'Sales Tax',
-              percentage: taxPercentage,
+              name: 'Kansas Sales Tax',
+              percentage: '6.5',
               scope: 'ORDER',
             }],
           } : {}),
@@ -224,7 +224,6 @@ export async function POST(req: NextRequest) {
     }
 
     const squareOrderId = orderData.order?.id;
-    // Use Square's calculated total to avoid mismatch with Apple Pay
     const orderTotal = orderData.order?.total_money?.amount || totalAmount;
 
     // Step 2: Process payment attached to the order
@@ -252,16 +251,9 @@ export async function POST(req: NextRequest) {
       console.error('Square payment error:', paymentData);
       return NextResponse.json({ error: paymentData.errors?.[0]?.detail || 'Payment failed' }, { status: 400 });
     }
-    
 
     const orderId = squareOrderId?.slice(-8).toUpperCase() || 'HH' + Date.now().toString().slice(-6);
 
-    // Record the tax transaction in Stripe for reporting/filing (non-fatal).
-    if (tax.calculationId) {
-      await recordTaxTransaction(tax.calculationId, orderId);
-    }
-
-    // Send confirmation email to customer
     await resend.emails.send({
       from: 'Heather & Hickory <orders@heatherandhickory.com>',
       to: customer.email,
@@ -321,7 +313,6 @@ export async function POST(req: NextRequest) {
       `,
     });
 
-    // Notify store of new order
     await resend.emails.send({
       from: 'Heather & Hickory <orders@heatherandhickory.com>',
       to: 'heatherandhickory@gmail.com',
@@ -337,7 +328,7 @@ export async function POST(req: NextRequest) {
           <h3>Items:</h3>
           ${orderItems.map(item => `<p>${item.name} × ${item.quantity} — ${item.price}</p>`).join('')}
           ${discountAmount > 0 ? `<p><strong>Discount:</strong> -$${(discountAmount / 100).toFixed(2)}</p>` : ''}
-          <p><strong>Shipping:</strong> ${shippingMethod === 'pickup' ? '🎓 CAMPUS PICKUP — arrange delivery with student' : shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</p>
+          <p><strong>Shipping:</strong> ${shippingAmount === 0 ? 'Free' : `$${(shippingAmount / 100).toFixed(2)}`}</p>
           ${taxAmount > 0 ? `<p><strong>Tax (KS 6.5%):</strong> $${(taxAmount / 100).toFixed(2)}</p>` : ''}
           <h3>Total: $${(orderTotal / 100).toFixed(2)}</h3>
         </div>

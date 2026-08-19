@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useState } from 'react';
+import { getSale } from '@/lib/sale';
 
 interface Product {
   id: string | number;
@@ -16,6 +17,10 @@ export default function ProductCard({ product }: { product: Product }) {
     ? Array.from(new Set([...product.images, product.image])).filter(Boolean)
     : [product.image];
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  const sale = getSale(product.name);
+  const originalPrice = parseFloat(product.price.replace(/[^0-9.]/g, ''));
+  const salePrice = sale ? originalPrice * (1 - sale.percentOff / 100) : originalPrice;
 
   const handlePrev = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -71,12 +76,22 @@ export default function ProductCard({ product }: { product: Product }) {
       </div>
 
       <div className="mt-4">
-        <p
-          className="text-[10px] uppercase tracking-[0.15em] text-gray-400 mb-1 truncate"
-          style={{ fontFamily: 'var(--font-jost), sans-serif' }}
-        >
-          {product.category}
-        </p>
+        <div className="flex items-center justify-between mb-1">
+          <p
+            className="text-[10px] uppercase tracking-[0.15em] text-gray-400 truncate"
+            style={{ fontFamily: 'var(--font-jost), sans-serif' }}
+          >
+            {product.category}
+          </p>
+          {sale && (
+            <span
+              className="text-[10px] uppercase tracking-[0.15em] text-[#435e48] whitespace-nowrap ml-2"
+              style={{ fontFamily: 'var(--font-jost), sans-serif' }}
+            >
+              {sale.label}
+            </span>
+          )}
+        </div>
         <div className="flex items-baseline justify-between gap-3">
           <h3
             className="text-base text-[#4c2a17] leading-tight transition-colors duration-200 group-hover:text-[#435e48] truncate"
@@ -84,12 +99,19 @@ export default function ProductCard({ product }: { product: Product }) {
           >
             {product.name}
           </h3>
-          <p
-            className="text-sm text-[#435e48] font-semibold whitespace-nowrap"
-            style={{ fontFamily: 'var(--font-jost), sans-serif' }}
-          >
-            {product.price}
-          </p>
+          <div className="flex items-baseline gap-2 whitespace-nowrap">
+            {sale && (
+              <span className="text-xs text-gray-400 line-through" style={{ fontFamily: 'var(--font-jost), sans-serif' }}>
+                {product.price}
+              </span>
+            )}
+            <span
+              className="text-sm text-[#435e48] font-semibold"
+              style={{ fontFamily: 'var(--font-jost), sans-serif' }}
+            >
+              ${salePrice.toFixed(2)}
+            </span>
+          </div>
         </div>
       </div>
     </Link>
