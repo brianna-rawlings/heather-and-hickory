@@ -3,9 +3,11 @@ import { use, useMemo, useState } from 'react';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
+import { getSale } from '@/lib/sale';
 
 const categoryNames: Record<string, string> = {
   'shop-all': 'Shop All',
+  'sale': 'Sale',
   'polos-t-shirts': 'Polos & T-Shirts',
   'shorts': 'Shorts',
   'hoodies-zips': 'Hoodies & Zips',
@@ -14,6 +16,7 @@ const categoryNames: Record<string, string> = {
 
 const categoryDescriptions: Record<string, string> = {
   'shop-all': 'Shop the full Heather & Hickory collection — golf polos, pullovers, hats, and accessories built for the course.',
+  'sale': 'End of season savings on select styles, while they last.',
   'polos-t-shirts': 'Heritage-inspired golf polos and t-shirts from Heather & Hickory. Built for the course, worn beyond it.',
   'hoodies-zips': 'Golf pullovers and zip-ups from Heather & Hickory. Timeless style for every round.',
   'hats-accessories': 'Golf hats and accessories from Heather & Hickory. Rooted in tradition, made to last.',
@@ -35,6 +38,7 @@ export default function CategoryPage({ params }: { params: Promise<{ category: s
 
   const filteredProducts = products.filter((p) => {
     if (category === 'shop-all') return true;
+    if (category === 'sale') return !!getSale(p.name);
     const categorySlug = p.category.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     return categorySlug === category;
   });

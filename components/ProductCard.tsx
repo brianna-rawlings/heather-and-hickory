@@ -36,6 +36,14 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <Link href={`/shop/product/${product.id}`} className="group cursor-pointer block">
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
+        {sale && (
+          <div className="absolute top-3 left-3 z-10 bg-[#4c2a17] px-3 py-1.5">
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#f9f7f4] font-medium">
+              Sale
+            </span>
+          </div>
+        )}
+
         <img
           src={allImages[currentIndex]}
           alt={product.name}

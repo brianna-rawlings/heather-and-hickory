@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-
-// Father's Day display window — keep in sync with the FATHERSDAY20 code
-// window in app/checkout/page.tsx and app/api/square/route.ts
-export const SALE_START = new Date('2026-06-17T04:00:00Z').getTime();
-export const SALE_END = new Date('2026-06-22T04:00:00Z').getTime(); // Sun 11:59pm ET
+// End of Season banner window — Blue Heather Polo & Whispering Clover Polo, 20% off.
+// Controls both the homepage banner (SaleBanner.tsx) and Navbar's top offset.
+export const SALE_START = new Date('2026-08-19T04:00:00Z').getTime(); // Aug 19, 12:00am ET
+export const SALE_END = new Date('2026-09-02T03:59:00Z').getTime(); // Sept 1, 11:59pm ET
 
 export function useSaleActive() {
   const [active, setActive] = useState(false);

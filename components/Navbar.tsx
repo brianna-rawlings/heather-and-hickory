@@ -12,17 +12,14 @@ export default function Navbar() {
   const [mobileShopOpen, setMobileShopOpen] = useState(false);
   const saleActive = useSaleActive();
 
-
-
   const shopCategories = [
     { name: 'Shop All', slug: 'shop-all' },
+    { name: 'Sale', slug: 'sale' },
     { name: 'Polos & T-Shirts', slug: 'polos-t-shirts' },
     { name: 'Shorts', slug: 'shorts' },
     { name: 'Hoodies & Zips', slug: 'hoodies-zips' },
     { name: 'Hats & Accessories', slug: 'hats-accessories' }
   ];
-
-  
 
   return (
     <>
