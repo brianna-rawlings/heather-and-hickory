@@ -56,7 +56,7 @@ venv/
 env/
 ENV/
 bin/
-lib/
+
 include/
 
 # Python Cache
@@ -72,3 +72,4 @@ __pycache__/
 .DS_Store
 
 
+i
