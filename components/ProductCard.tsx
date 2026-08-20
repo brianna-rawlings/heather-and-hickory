@@ -37,8 +37,19 @@ export default function ProductCard({ product }: { product: Product }) {
     <Link href={`/shop/product/${product.id}`} className="group cursor-pointer block">
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
         {sale && (
-          <div className="absolute top-3 left-3 z-10 bg-[#4c2a17] px-3 py-1.5">
-            <span className="text-[9px] uppercase tracking-[0.2em] text-[#f9f7f4] font-medium">
+          <div
+            className="absolute z-20"
+            style={{
+              top: '18px',
+              left: '-38px',
+              width: '150px',
+              textAlign: 'center',
+              transform: 'rotate(-45deg)',
+              background: '#962323',
+              padding: '5px 0',
+            }}
+          >
+            <span className="text-[15px] uppercase tracking-[0.2em] text-[#f9f7f4]">
               Sale
             </span>
           </div>
@@ -109,7 +120,7 @@ export default function ProductCard({ product }: { product: Product }) {
           </h3>
           <div className="flex items-baseline gap-2 whitespace-nowrap">
             {sale && (
-              <span className="text-xs text-gray-400 line-through" style={{ fontFamily: 'var(--font-jost), sans-serif' }}>
+              <span className="text-xs text-white-500 line-through" style={{ fontFamily: 'var(--font-jost), sans-serif' }}>
                 {product.price}
               </span>
             )}
